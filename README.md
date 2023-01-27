@@ -15,15 +15,27 @@ Security info: We know this program gets false positive for being a trojan horse
 Please note: Previous version used .pkl file.  We are switching to .txt files with save codes in them.  This release the update will be automatic, and any time a level from a .pkl file is loaded it will be converted automatically, however this will be depricated soon.
 
 Features:
+
 Level Select: Implemented
+
 Playing: Implemented
+
 Customizable Controls: Implemented
+
 Customizable Font: Implemented
+
 Text to Speech: Implemented
+
 Keyed Movement: Implemented
+
 Level Editing: In Progress
+
 Player Skins: Planned
+
 Credits Screen: Implemented
+
 Switch From .pkl to .txt Files: Implemented
+
 Multiple Player Saves: Planned
+
 Tutorial Area: Implemented
