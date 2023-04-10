@@ -1,0 +1,1 @@
+4-Double Jump==1522251914221425112143y11t1Timed Detonation21==-11H1The dark red block remotely hits the block it points at after a set delay.21=21

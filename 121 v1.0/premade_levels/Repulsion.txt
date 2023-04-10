@@ -1,0 +1,1 @@
+49Repulsion==152226181131727821r1776787=8=9=0=-==2829202-2=27=7y1191Repulsed217=81231=626-11<2Now introducing repel blocks!  These blocks are like jump blocks, except they push you away, not in the direction of the arrow.  They have two settings, with slightly different behavior.21=21

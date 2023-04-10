@@ -1,0 +1,1 @@
+47Sliding==1522361=1012232427202=2737475215152628292y1161Dirty21=34121-2-11^2This level introduces the mud block.  While touching it, it changes gravity, friction and a few other things.  Try jumping before touching a mud block.21251

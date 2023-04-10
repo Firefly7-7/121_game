@@ -9,9 +9,9 @@ Scratch version: https://scratch.mit.edu/projects/631515625/
 
 Text to speech is automatically turned on, and will automatically read some things to you. This can be changed in the options area. Movement through screens without clicking is possible. By default, use TAB to move through buttons, and press enter to select them.
 
-Security info: We know this program gets false positive for being a trojan horse program. We believe this is because we are replacing the .pkl files due to potential security issues with using them. As such, we have implemented a method to completely replace all .pkl files automatically, which involves removing them. This might be what is triggering false positives.
+Security info: This program might get a false positive from your malware program.  If so, tell us which program so we can submit it to be analyzed manually.
 
-Please note: Previous version used .pkl file. We are switching to .txt files with save codes in them. This release the update will be automatic, and any time a level from a .pkl file is loaded it will be converted automatically, however this will be depricated soon.
+Discord: https://discord.gg/ETVgSDB5VW
 
 Features:
 
@@ -27,13 +27,13 @@ Text to Speech: Implemented
 
 Keyed Movement: Implemented
 
-Level Editing: In Progress
+Level Editing: Implemented
 
-Player Skins: Planned
+Player Skins: Implemented
 
 Credits Screen: Implemented
 
-Switch From .pkl to .txt Files: Implemented
+Switch From .pkl to .txt Files: Removed
 
 Multiple Player Saves: Planned
 
