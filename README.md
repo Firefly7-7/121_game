@@ -38,3 +38,6 @@ Switch From .pkl to .txt Files: Removed
 Multiple Player Saves: Planned
 
 Tutorial Area: Implemented
+
+For the source code:
+Python 3.10.2, dependencies: pygame, gtts 
