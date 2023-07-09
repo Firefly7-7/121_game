@@ -14,17 +14,29 @@ Security info: This program might get a false positive from your malware program
 Discord: https://discord.gg/ETVgSDB5VW
 
 Features:
+
 Level Select: Implemented
+
 Playing: Implemented
+
 Customizable Controls: Implemented
+
 Customizable Font: Implemented
+
 Text to Speech: Implemented
+
 Keyed Movement: Implemented
+
 Level Editing: Implemented
+
 Player Skins: Implemented
+
 Credits Screen: Implemented
+
 Switch From .pkl to .txt Files: Removed
+
 Multiple Player Saves: Planned
+
 Tutorial Area: Implemented
 
 For the source code:
