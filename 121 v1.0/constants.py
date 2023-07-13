@@ -6,6 +6,8 @@ from os import listdir
 from skin_management import decode_skin, Skin
 from dataclasses import dataclass
 from typing import Union, Any
+from enum import Enum
+from block_data import PointedBlock, Gravity, EasterEgg, GivesAchievement, Repel, Activator, HasTextField, Portal, FragileGround, Destroyer, Rotator
 
 # for options key change
 # noinspection IncorrectFormatting
@@ -20,7 +22,8 @@ LETTER_CODES: dict[str, str] = {
     "1": "1234567890qwertyuiopasdfghjklzxcvbnm`-=[]\;',./~!@#$%^&*_+{}|:\"<>?←↑→↓↔↖↗↘↙↚↛↜↝↞↟↠↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇋⇊⇉⇈⇇",
     "2": "1234567890qwertyuiopasdfghjklzxcvbnm`-=[]\;',./~!()\"#$%^&*_+{}|:<>?←↑→↓↔↖↗↘↙↚↛↜↝↞↟↠↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇋⇊⇉⇈⇇",
     "3": "n|tao↯q↛x↠p↣0+k_>5)↬↔fv↝c6y%↢↰7w<(↪gh↙su8i'9m↨}[↖↭`↥?↫↚*2↧↲jl↞eb↑\\r↟↮↦=3↤/-]↗$z\",;↩14!←:^{~.↱d→↜#↓&↘",
-    "4": "1234567890-=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéç:â€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ"
+    "4": "1234567890-=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéç:â€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ",
+    "5": "1234567890=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéç:â€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ"
 }
 
 # noinspection IncorrectFormatting
@@ -156,87 +159,102 @@ ADMIN_BLOCKS: list[str] = ["easter egg", "achievement goal"]
 # 5+ specific information required for that control
 # iterator: lower bound, upper bound (not inclusive), step
 # boolean: no more information required
+# freeform_num: step
 # text: lowest # of characters, highest # of characters
 # list: a list/tuple of the options for the field
 # -1: override displays (can be nonexistant).  tuple for boolean and iterator, dictionary for list
 # noinspection IncorrectFormatting
+
+
+class FieldType(Enum):
+    """
+    enumerator for field types
+    """
+    iterator = 0
+    boolean = 1
+    freeform_num = 2
+    text = 3
+    list = 4
+
+
+BUTTON_COUNT: dict[FieldType, int] = {
+    FieldType.boolean: 1,
+    FieldType.iterator: 3,
+    FieldType.list: 1,
+    FieldType.text: 1,
+    FieldType.freeform_num: 3
+}
 BLOCK_CONSTRUCTION: dict[str, list[tuple[str, str, str, Any, set, Any, ...]]] = {
     "delete": [],
     "ground": [],
     "goal": [],
     "lava": [],
     "jump": [
-        ("grav_locked", "Gravity Locked", "boolean", False, {}),
-        ("rotation", "Rotation", "iterator", 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left"))
+        (PointedBlock.grav_locked, "Gravity Locked", FieldType.boolean, False, {}),
+        (PointedBlock.rotation, "Rotation", FieldType.iterator, 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left"))
     ],
     "gravity": [
-        ("type", "Type", "list", "direction", {}, ("direction", "set")),
-        ("grav_locked", "Gravity Locked", "boolean", False, {("type", frozenset({"direction"}))}),
-        ("rotation", "Rotation", "iterator", 0, {("type", frozenset({"direction"}))}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
-        ("mode", "Mode", "iterator", 0, {("type", frozenset({"set"}))}, 0, 5, 1),
-        ("value", "Value", "iterator", 0, {("type", frozenset({"set"}))}, 0, 2.75, 0.25)
+        (Gravity.type, "Type", FieldType.list, "direction", {}, ("direction", "set")),
+        (Gravity.grav_locked, "Gravity Locked", FieldType.boolean, False, {(Gravity.type, frozenset({"direction"}))}),
+        (Gravity.rotation, "Rotation", FieldType.iterator, 0, {(Gravity.type, frozenset({"direction"}))}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
+        (Gravity.mode, "Mode", FieldType.iterator, 0, {(Gravity.type, frozenset({"set"}))}, 0, 5, 1),
+        (Gravity.value, "Value", FieldType.iterator, 0, {(Gravity.type, frozenset({"set"}))}, 0, 2.75, 0.25)
     ],
     "easter egg": [
-        ("type", "Type", "list", "level", {}, ("level", "achievement", "skin")),
-        ("level", "Level", "list", EASTER_EGG_LEVELS[0], {("type", frozenset({"level"}))}, EASTER_EGG_LEVELS),
-        ("achievement", "Achievement", "list", achievement_list[0], {("type", frozenset({"achievement"}))}, achievement_list),
-        ("skin", "Skin", "list", SKIN_LIST[0], {("type", frozenset({"skin"}))}, SKIN_LIST)
+        (EasterEgg.type, "Type", FieldType.list, "level", {}, ("level", "achievement", "skin")),
+        (EasterEgg.level, "Level", FieldType.list, EASTER_EGG_LEVELS[0], {(EasterEgg.type, frozenset({"level"}))}, EASTER_EGG_LEVELS),
+        (EasterEgg.achievement, "Achievement", FieldType.list, achievement_list[0], {(EasterEgg.type, frozenset({"achievement"}))}, achievement_list),
+        (EasterEgg.skin, "Skin", FieldType.list, SKIN_LIST[0], {(EasterEgg.type, frozenset({"skin"}))}, SKIN_LIST)
     ],
     "achievement goal": [
-        ("achievement", "Achievement", "list", achievement_list[0], {}, achievement_list),
+        (GivesAchievement.achievement, "Achievement", FieldType.list, achievement_list[0], {}, achievement_list),
     ],
     "repel": [
-        ("mode", "Mode", "boolean", False, {}, ("Linear", "Direct"))
+        (Repel.mode, "Mode", FieldType.boolean, False, {}, ("Linear", "Direct"))
     ],
     "activator": [
-        ("grav_locked", "Gravity Locked", "boolean", False, {}),
-        ("rotation", "Rotation", "iterator", 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
-        ("delay", "Delay", "iterator", 0, {}, 0, 25, 0.25)
+        (Activator.grav_locked, "Gravity Locked", FieldType.boolean, False, {}),
+        (Activator.rotation, "Rotation", FieldType.iterator, 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
+        (Activator.delay, "Delay", FieldType.iterator, 0, {}, 0, 25, 0.25)
     ],
     "coin": [],
     "msg": [
-        ("text", "Message", "text", "Hello World!", {}, 0, 9999)
+        (HasTextField.text, "Message", FieldType.text, "Hello World!", {}, 0, 9999)
     ],
     "mud": [],
     "sticky": [],
     "bouncy": [],
     "ice": [],
     "portal": [
-        ("relative", "Relative Positioning", "boolean", False, {}),
-        ("x", "X", "iterator", 0, {}, -11, 12, 1),
-        ("y", "Y", "iterator", 0, {}, -11, 12, 1),
-        ("reflect_x", "Reflect X Momentum", "boolean", False, {}),
-        ("reflect_y", "Reflect Y Momentum", "boolean", False, {}),
-        ("rotation", "Rotate Momentum", "iterator", 0, {}, 0, 4, 1, ("No effect", "Clockwise", "Reverse", "Counterclockwise"))
+        (Portal.relative, "Relative Positioning", FieldType.boolean, False, {}),
+        (Portal.x, "X", FieldType.freeform_num, 0, {}, -11, 12, 1),
+        (Portal.y, "Y", FieldType.freeform_num, 0, {}, -11, 12, 1),
+        (Portal.reflect_x, "Reflect X Momentum", FieldType.boolean, False, {}),
+        (Portal.reflect_y, "Reflect Y Momentum", FieldType.boolean, False, {}),
+        (PointedBlock.rotation, "Rotate Momentum", FieldType.iterator, 0, {}, 0, 4, 1, ("No effect", "Clockwise", "Reverse", "Counterclockwise"))
     ],
     "fragile ground": [
-        ("sturdiness", "Sturdiness", "iterator", 0, {}, 0, 31, 1),
-        ("remove_barriers", "Remove Barriers", "boolean", False, {}),
-        ("remove_link", "Remove Link", "boolean", False, {})
+        (FragileGround.sturdiness, "Sturdiness", FieldType.iterator, 0, {}, 0, 31, 1),
+        (FragileGround.remove_barriers, "Remove Barriers", FieldType.boolean, False, {}),
+        (FragileGround.remove_link, "Remove Link", FieldType.boolean, False, {})
     ],
     "destroyer": [
-        ("rotation", "Direction", "iterator", 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
-        ("grav_locked", "Gravity Locked", "boolean", False, {}),
-        ("destroy_link", "Destroy Link", "boolean", True, {}),
-        ("destroy_barriers", "Destroy Barriers", "iterator", 1, {}, 0, 3, 1, ("None", "All", "Top")),
-        ("destroy_block", "Destroy Block", "boolean", True, {}),
-        ("match_block", "Match Block", "list", False, {}, tuple([False] + WORKING_BLOCK_LIST))
+        (Destroyer.rotation, "Direction", FieldType.iterator, 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
+        (Destroyer.grav_locked, "Gravity Locked", FieldType.boolean, False, {}),
+        (Destroyer.destroy_link, "Destroy Link", FieldType.boolean, True, {}),
+        (Destroyer.destroy_barriers, "Destroy Barriers", FieldType.iterator, 1, {}, 0, 3, 1, ("None", "All", "Top")),
+        (Destroyer.destroy_block, "Destroy Block", FieldType.boolean, True, {}),
+        (Destroyer.match_block, "Match Block", FieldType.list, False, {}, tuple([False] + WORKING_BLOCK_LIST))
     ],
     "rotator": [
-        ("rotation", "Direction", "iterator", 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
-        ("grav_locked", "Gravity Locked", "boolean", False, {}),
-        ("mode", "Mode", "boolean", True, {}, ("Set Direction", "Rotate")),
-        ("grav_account", "Account for Gravity", "boolean", False, {("mode", tuple([False]))}),
-        ("amount", "Amount", "iterator", 0, {}, 0, 4, 1, ("No Effect/Up", "Clockwise/Right", "Reverse/Down", "Counterclockwise/Left")),
-        ("rotate_block", "Rotate Block", "boolean", True, {}),
-        ("rotate_barriers", "Rotate Barriers", "boolean", True, {}),
+        (Rotator.rotation, "Direction", FieldType.iterator, 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),
+        (Rotator.grav_locked, "Gravity Locked", FieldType.boolean, False, {}),
+        (Rotator.mode, "Mode", FieldType.boolean, True, {}, ("Set Direction", "Rotate")),
+        (Rotator.grav_account, "Account for Gravity", FieldType.boolean, False, {(Rotator.mode, tuple([False]))}),
+        (Rotator.value, "Amount", FieldType.iterator, 0, {}, 0, 4, 1, ("No Effect/Up", "Clockwise/Right", "Reverse/Down", "Counterclockwise/Left")),
+        (Rotator.rotate_block, "Rotate Block", FieldType.boolean, True, {}),
+        (Rotator.rotate_barriers, "Rotate Barriers", FieldType.boolean, True, {}),
     ]
-}
-BUTTON_COUNT: dict[str, int] = {
-    "boolean": 1,
-    "iterator": 3,
-    "list": 1,
-    "text": 1
 }
 BLOCK_DESCRIPTIONS: dict[str, str] = {
     "delete": "Delete a block.",
@@ -300,102 +318,210 @@ BARRIER_COLORS: dict[str, tuple[tuple[int, int, int], tuple[int, int, int]]] = {
 #  dictionary of option type:
 #    string-to-number type:
 #      (list)
-#      tuple: (name: str, map: list[strings])
+#      tuple: (name: enum member, map: list[strings])
+#    freeform number type:
+#      (list)
+#      tuple: (name: enum member, step)
 #    number type:
 #      (list)
-#      tuple: (name: str, max value: int, min value: int, optional: bool, [multiplier]) - does not exist value is 1 more than max value
+#      tuple: (name: enum member, max value: int, min value: int, optional: bool, [multiplier]) - does not exist value is 1 more than max value
 #    string type:
 #      (list)
-#      tuple: (name: str, [dependent name]: str/None, [dependent value]: Any)
+#      tuple: (name: enum member, [dependent name]: enum member/None, [dependent value]: Any)
+
+
+class SavingFieldGroups(Enum):
+    """
+    enum for saving field groups
+    """
+    string_to_number = 0
+    freeform_num = 3
+    number = 1
+    string = 2
+
+
 SAVE_CODE: dict[str, dict[str, dict[str, list[tuple[str, Any, ...]]]]] = {
     "4": {
         "jump": {
-            "number": [
-                ("grav_locked", 1, 0, False),
-                ("rotation", 3, 0, False)
+            SavingFieldGroups.number: [
+                (PointedBlock.grav_locked, 1, 0, False),
+                (PointedBlock.rotation, 3, 0, False)
             ],
         },
         "gravity": {
-            "string_to_number": [
-                ("type", ["direction", "set"])
+            SavingFieldGroups.string_to_number: [
+                (Gravity.type, ["direction", "set"])
             ],
-            "number": [
-                ("grav_locked", 1, 0, True),
-                ("rotation", 3, 0, True),
-                ("mode", 4, 0, True),
-                ("value", 2.5, 0, True, 4)
+            SavingFieldGroups.number: [
+                (Gravity.grav_locked, 1, 0, True),
+                (Gravity.rotation, 3, 0, True),
+                (Gravity.mode, 4, 0, True),
+                (Gravity.value, 2.5, 0, True, 4)
             ]
         },
         "easter egg": {
-            "string_to_number": [
-                ("type", ["level", "achievement", "skin"])
+            SavingFieldGroups.string_to_number: [
+                (EasterEgg.type, ["level", "achievement", "skin"])
             ],
-            "string": [
-                ("level", "type", "level"),
-                ("achievement", "type", "achievement"),
-                ("skin", "type", "skin")
+            SavingFieldGroups.string: [
+                (EasterEgg.level, EasterEgg.type, "level"),
+                (EasterEgg.achievement, EasterEgg.type, "achievement"),
+                (EasterEgg.skin, EasterEgg.type, "skin")
             ]
         },
         "achievement goal": {
-            "string": [
-                ("achievement", None)
+            SavingFieldGroups.string: [
+                (GivesAchievement.achievement, None)
             ]
         },
         "repel": {
-            "number": [
-                ("mode", 1, 0, False)
+            SavingFieldGroups.number: [
+                (Repel.mode, 1, 0, False)
             ]
         },
         "activator": {
-            "number": [
-                ("delay", 24.75, 0, False, 4),
-                ("grav_locked", 1, 0, False),
-                ("rotation", 3, 0, False)
+            SavingFieldGroups.number: [
+                (Activator.delay, 24.75, 0, False, 4),
+                (Activator.grav_locked, 1, 0, False),
+                (Activator.rotation, 3, 0, False)
             ]
         },
         "msg": {
-            "string": [
-                ("text", None)
+            SavingFieldGroups.string: [
+                (HasTextField.text, None)
             ]
         },
         "portal": {
-            "number": [
-                ("relative", 1, 0, False),
-                ("x", 11, -11, False),
-                ("y", 11, -11, False),
-                ("reflect_x", 1, 0, False),
-                ("reflect_y", 1, 0, False),
-                ("rotation", 3, 0, True)
+            SavingFieldGroups.number: [
+                (Portal.relative, 1, 0, False),
+                (Portal.x, 11, -11, False),
+                (Portal.y, 11, -11, False),
+                (Portal.reflect_x, 1, 0, False),
+                (Portal.reflect_y, 1, 0, False),
+                (Portal.rotation, 3, 0, True)
             ]
         },
         "fragile ground": {
-            "number": [
-                ("sturdiness", 30, 0, False),
-                ("remove_barriers", 1, 0, False),
-                ("remove_link", 1, 0, False),
+            SavingFieldGroups.number: [
+                (FragileGround.sturdiness, 30, 0, False),
+                (FragileGround.remove_barriers, 1, 0, False),
+                (FragileGround.remove_link, 1, 0, False),
             ]
         },
         "destroyer": {
-            "string_to_number": [
-                ("match_block", [False] + WORKING_BLOCK_LIST)
+            SavingFieldGroups.string_to_number: [
+                (Destroyer.match_block, [False] + WORKING_BLOCK_LIST)
             ],
-            "number": [
-                ("grav_locked", 1, 0, False),
-                ("rotation", 3, 0, False),
-                ("destroy_link", 1, 0, False),
-                ("destroy_barriers", 2, 0, False),
-                ("destroy_block", 1, 0, False)
+            SavingFieldGroups.number: [
+                (Destroyer.grav_locked, 1, 0, False),
+                (Destroyer.rotation, 3, 0, False),
+                (Destroyer.destroy_link, 1, 0, False),
+                (Destroyer.destroy_barriers, 2, 0, False),
+                (Destroyer.destroy_block, 1, 0, False)
             ]
         },
         "rotator": {
-            "number": [
-                ("rotation", 3, 0, False),
-                ("grav_locked", 1, 0, False),
-                ("mode", 1, 0, False),
-                ("amount", 3, 0, False),
-                ("rotate_block", 1, 0, False),
-                ("rotate_barriers", 1, 0, False),
-                ("grav_account", 1, 0, True)
+            SavingFieldGroups.number: [
+                (Rotator.rotation, 3, 0, False),
+                (Rotator.grav_locked, 1, 0, False),
+                (Rotator.mode, 1, 0, False),
+                (Rotator.value, 3, 0, False),
+                (Rotator.rotate_block, 1, 0, False),
+                (Rotator.rotate_barriers, 1, 0, False),
+                (Rotator.grav_account, 1, 0, True)
+            ]
+        }
+    },
+    "5": {
+        "jump": {
+            SavingFieldGroups.number: [
+                (PointedBlock.grav_locked, 1, 0, False),
+                (PointedBlock.rotation, 3, 0, False)
+            ],
+        },
+        "gravity": {
+            SavingFieldGroups.string_to_number: [
+                (Gravity.type, ["direction", "set"])
+            ],
+            SavingFieldGroups.number: [
+                (Gravity.grav_locked, 1, 0, True),
+                (Gravity.rotation, 3, 0, True),
+                (Gravity.mode, 4, 0, True),
+                (Gravity.value, 2.5, 0, True, 4)
+            ]
+        },
+        "easter egg": {
+            SavingFieldGroups.string_to_number: [
+                (EasterEgg.type, ["level", "achievement", "skin"])
+            ],
+            SavingFieldGroups.string: [
+                (EasterEgg.level, EasterEgg.type, "level"),
+                (EasterEgg.achievement, EasterEgg.type, "achievement"),
+                (EasterEgg.skin, EasterEgg.type, "skin")
+            ]
+        },
+        "achievement goal": {
+            SavingFieldGroups.string: [
+                (GivesAchievement.achievement, None)
+            ]
+        },
+        "repel": {
+            SavingFieldGroups.number: [
+                (Repel.mode, 1, 0, False)
+            ]
+        },
+        "activator": {
+            SavingFieldGroups.number: [
+                (Activator.delay, 24.75, 0, False, 4),
+                (Activator.grav_locked, 1, 0, False),
+                (Activator.rotation, 3, 0, False)
+            ]
+        },
+        "msg": {
+            SavingFieldGroups.string: [
+                (HasTextField.text, None)
+            ]
+        },
+        "portal": {
+            SavingFieldGroups.freeform_num: [
+                (Portal.x, 1),
+                (Portal.y, 1),
+            ],
+            SavingFieldGroups.number: [
+                (Portal.relative, 1, 0, False),
+                (Portal.reflect_x, 1, 0, False),
+                (Portal.reflect_y, 1, 0, False),
+                (Portal.rotation, 3, 0, True)
+            ]
+        },
+        "fragile ground": {
+            SavingFieldGroups.number: [
+                (FragileGround.sturdiness, 30, 0, False),
+                (FragileGround.remove_barriers, 1, 0, False),
+                (FragileGround.remove_link, 1, 0, False),
+            ]
+        },
+        "destroyer": {
+            SavingFieldGroups.string_to_number: [
+                (Destroyer.match_block, [False] + WORKING_BLOCK_LIST)
+            ],
+            SavingFieldGroups.number: [
+                (Destroyer.grav_locked, 1, 0, False),
+                (Destroyer.rotation, 3, 0, False),
+                (Destroyer.destroy_link, 1, 0, False),
+                (Destroyer.destroy_barriers, 2, 0, False),
+                (Destroyer.destroy_block, 1, 0, False)
+            ]
+        },
+        "rotator": {
+            SavingFieldGroups.number: [
+                (Rotator.rotation, 3, 0, False),
+                (Rotator.grav_locked, 1, 0, False),
+                (Rotator.mode, 1, 0, False),
+                (Rotator.value, 3, 0, False),
+                (Rotator.rotate_block, 1, 0, False),
+                (Rotator.rotate_barriers, 1, 0, False),
+                (Rotator.grav_account, 1, 0, True)
             ]
         }
     }

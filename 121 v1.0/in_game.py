@@ -10,6 +10,7 @@ from pygame.time import get_ticks
 from game_structures import Collision
 from constants import SOLID_BLOCKS
 from pygame.transform import rotate
+from block_data import PointedBlock, VariableValue, Gravity, GivesAchievement, EasterEgg, Repel, Activator, HasTextField, Portal, FragileGround, Destroyer, Rotator
 
 
 class InGame(Utility):
@@ -174,7 +175,7 @@ class InGame(Utility):
                 else:
                     if (self.after_game == "level_select" and self.custom == 0) or self.admin:
                         for check in new_touched["achievement goal"]:
-                            self.give_achievement(block_info[check.coordinates[0:2]].other["achievement"])
+                            self.give_achievement(block_info[check.coordinates[0:2]].other[GivesAchievement.achievement])
                     else:
                         self.alerts.add_alert("Cannot collect easter eggs in construction zone or from custom levels!")
                     self.won = True
@@ -219,12 +220,12 @@ class InGame(Utility):
             if "fragile ground" in new_touched and not corrected:
                 impact_momentum = player_momentum
                 for check in new_touched["fragile ground"]:
-                    if check.other["sturdiness"] < abs(impact_momentum[(check.direction + 1) % 2]):
+                    if check.other[FragileGround.sturdiness] < abs(impact_momentum[(check.direction + 1) % 2]):
                         block = block_info[check.coordinates]
                         block.type = ""
-                        if check.other["remove_barriers"]:
+                        if check.other[FragileGround.remove_barriers]:
                             block.barriers = []
-                        if check.other["remove_link"]:
+                        if check.other[FragileGround.remove_link]:
                             if "link" in block.other:
                                 link_info[block.other["link"]].remove(check.coordinates)
                                 del block.other["link"]
@@ -295,19 +296,19 @@ class InGame(Utility):
                         if gravity_info[0] == check.direction:
                             ground = True
                         corrected = False
-                    if (check.other["rotation"] + gravity_info[0] * (1 - check.other["grav_locked"])) % 2 == 0:
+                    if (check.other[PointedBlock.rotation] + gravity_info[0] * (1 - check.other[PointedBlock.grav_locked])) % 2 == 0:
                         if abs(player_momentum[1]) < 16.25:
                             player_momentum = (
                                 player_momentum[0],
                                 16.25 * cos(
-                                    (check.other["rotation"] - gravity_info[0] * (1 - check.other["grav_locked"])) % 4
+                                    (check.other[PointedBlock.rotation] - gravity_info[0] * (1 - check.other[PointedBlock.grav_locked])) % 4
                                 )
                             )
                     else:
                         if abs(player_momentum[0]) < 16.25:
                             player_momentum = (
                                 16.25 * sin(
-                                    (check.other["rotation"] + gravity_info[0] * (-1 + check.other["grav_locked"])) % 4
+                                    (check.other[PointedBlock.rotation] + gravity_info[0] * (-1 + check.other[PointedBlock.grav_locked])) % 4
                                 ),
                                 player_momentum[1]
                             )
@@ -324,7 +325,7 @@ class InGame(Utility):
                         if gravity_info[0] == check.direction:
                             ground = True
                         corrected = False
-                    if isinstance(check.other, tuple) or check.other["mode"] == 0:
+                    if isinstance(check.other, tuple) or check.other[Repel.mode] == 0:
                         if check.direction % 2 == 0:
                             player_momentum = (player_momentum[0], -16.25 * (check.direction - 1))
                         else:
@@ -342,33 +343,33 @@ class InGame(Utility):
                     elif check.direction % 2 == 1 and abs(player_momentum[0]) > 3:
                         activate = True
                     if activate:
-                        if check.other["type"] == "direction":
-                            gravity[0] = (3 * (check.other["rotation"] - (1 - check.other["grav_locked"]) *
+                        if check.other[Gravity.type] == "direction":
+                            gravity[0] = (3 * (check.other[Gravity.rotation] - (1 - check.other[Gravity.grav_locked]) *
                                                gravity_info[0]) + 2) % 4
                         else:
-                            if check.other["mode"] == 0:
-                                gravity[1] = -1 * check.other["value"]
-                            elif check.other["mode"] == 1:
-                                gravity[1] -= check.other["value"]
+                            if check.other[Gravity.mode] == 0:
+                                gravity[1] = -1 * check.other[Gravity.value]
+                            elif check.other[Gravity.mode] == 1:
+                                gravity[1] -= check.other[Gravity.value]
                                 if gravity[1] < -2.5:
                                     gravity[1] = -2.5
-                            elif check.other["mode"] == 2:
-                                gravity[1] += check.other["value"]
+                            elif check.other[Gravity.mode] == 2:
+                                gravity[1] += check.other[Gravity.value]
                                 if gravity[1] > 0:
                                     gravity[1] = 0
-                            elif check.other["mode"] == 3:
-                                gravity[1] *= check.other["value"]
+                            elif check.other[Gravity.mode] == 3:
+                                gravity[1] *= check.other[Gravity.value]
                                 if gravity[1] < -2.5:
                                     gravity[1] = -2.5
-                            elif check.other["mode"] == 4:
-                                if check.other["value"] == 0:
+                            elif check.other[Gravity.mode] == 4:
+                                if check.other[Gravity.value] == 0:
                                     gravity[1] = -2.5
                                 else:
-                                    gravity[1] /= check.other["value"]
+                                    gravity[1] /= check.other[Gravity.value]
                                     if gravity[1] < -2.5:
                                         gravity[1] = -2.5
                             else:
-                                print(check.other["mode"])
+                                print(check.other[Gravity.mode])
                     if check.local and not corrected:
                         stop = True
                         player_pos, player_momentum = position_correction(
@@ -393,14 +394,14 @@ class InGame(Utility):
                         if gravity_info[0] == check.direction:
                             ground = True
                         corrected = False
-                    look = 3 * (check.other["rotation"] + (1 - check.other["grav_locked"]) * gravity_info[0] + 2) % 4
+                    look = 3 * (check.other[Activator.rotation] + (1 - check.other[Activator.grav_locked]) * gravity_info[0] + 2) % 4
                     coordinates = (
                         check.coordinates[0] + sin(look),
                         check.coordinates[1] - cos(look)
                     )
                     if coordinates not in new_scheduled:
                         # print(check.coordinates, coordinates)
-                        new_scheduled[coordinates] = (look, check.other["delay"])
+                        new_scheduled[coordinates] = (look, check.other[Activator.delay])
             if "destroyer" in new_touched:
                 for check in new_touched["destroyer"]:
                     activate = not check.local
@@ -421,7 +422,7 @@ class InGame(Utility):
                         corrected = False
                     if not activate:
                         continue
-                    look = 3 * (check.other["rotation"] + (1 - check.other["grav_locked"]) * gravity_info[0] + 2) % 4
+                    look = 3 * (check.other[Destroyer.rotation] + (1 - check.other[Destroyer.grav_locked]) * gravity_info[0] + 2) % 4
                     coordinates = (
                         check.coordinates[0] + sin(look),
                         check.coordinates[1] - cos(look)
@@ -429,18 +430,18 @@ class InGame(Utility):
                     block = block_info.get(coordinates, None)
                     if block is None:
                         continue
-                    if not isinstance(check.other["match_block"], bool):
-                        if check.other["match_block"] is None:
+                    if not isinstance(check.other[Destroyer.match_block], bool):
+                        if check.other[Destroyer.match_block] is None:
                             if block.type != "":
                                 continue
                         else:
-                            if block.type != check.other["match_block"]:
+                            if block.type != check.other[Destroyer.match_block]:
                                 continue
-                    if check.other["destroy_link"]:
+                    if check.other[Destroyer.destroy_link]:
                         if "link" in block.other:
                             link_info[block.other["link"]].remove(coordinates)
                             del block.other["link"]
-                    match check.other["destroy_barriers"]:
+                    match check.other[Destroyer.destroy_barriers]:
                         case 1:
                             block.barriers = []
                         case 2:
@@ -448,7 +449,7 @@ class InGame(Utility):
                                 block.barriers = list(block.barriers)
                             if block.barriers:
                                 del block.barriers[-1]
-                    if check.other["destroy_block"]:
+                    if check.other[Destroyer.destroy_block]:
                         block.type = ""
             if "rotator" in new_touched:
                 for check in new_touched["rotator"]:
@@ -469,7 +470,7 @@ class InGame(Utility):
                             ground = True
                         corrected = False
                     if activate:
-                        look = 3 * (check.other["rotation"] - (1 - check.other["grav_locked"]) * gravity_info[0] + 2) % 4
+                        look = 3 * (check.other[Rotator.rotation] - (1 - check.other[Rotator.grav_locked]) * gravity_info[0] + 2) % 4
                         coordinates = (
                             check.coordinates[0] + sin(look),
                             check.coordinates[1] - cos(look)
@@ -477,18 +478,18 @@ class InGame(Utility):
                         block = block_info.get(coordinates, None)
                         if block is None:
                             continue
-                        block_rotate = check.other["amount"]
-                        if check.other["rotate_block"] and "rotation" in block.other:
-                            if not check.other["mode"]:  # if setting, not rotating
-                                if check.other["grav_account"] and not block.other.get("grav_locked", True):
-                                    block_rotate = (check.other["amount"] - block.other["rotation"] + gravity[0]) % 4
+                        block_rotate = check.other[Rotator.value]
+                        if check.other[Rotator.rotate_block] and PointedBlock.rotation in block.other:
+                            if not check.other[Rotator.mode]:  # if setting, not rotating
+                                if check.other[Rotator.grav_account] and not block.other.get(PointedBlock.grav_locked, True):
+                                    block_rotate = (check.other[Rotator.value] - block.other[PointedBlock.rotation] + gravity[0]) % 4
                                 else:
-                                    block_rotate = (check.other["amount"] - block.other["rotation"]) % 4
+                                    block_rotate = (check.other[Rotator.value] - block.other[PointedBlock.rotation]) % 4
                             # block.other["rotation"] = (check.other["mode"] * block.other["rotation"] + check.other["amount"]) % 4
-                            block.other["rotation"] = (block.other["rotation"] + block_rotate) % 4
-                        elif not check.other["mode"]:
+                            block.other[PointedBlock.rotation] = (block.other[PointedBlock.rotation] + block_rotate) % 4
+                        elif not check.other[Rotator.mode]:
                             block_rotate = 0
-                        if check.other["rotate_barriers"]:
+                        if check.other[Rotator.rotate_barriers]:
                             for i in range(len(block.barriers)):
                                 block.barriers[i] = (
                                     block.barriers[i][0],
@@ -501,31 +502,32 @@ class InGame(Utility):
                     block_info[check.coordinates[0:2]].type = ""
             if "portal" in new_touched:
                 portal = new_touched["portal"][0]
-                if portal.other["relative"]:
-                    player_pos = (player_pos[0] + portal.other["x"] * 30, player_pos[1] + portal.other["y"] * 30)
+                if portal.other[Portal.relative]:
+                    player_pos = (player_pos[0] + portal.other[Portal.x] * 30, player_pos[1] + portal.other[Portal.y] * 30)
                 else:
-                    player_pos = (portal.other["x"] * 30 + 15, portal.other["y"] * 30 + 15)
+                    player_pos = (portal.other[Portal.x] * 30 + 15, portal.other[Portal.y] * 30 + 15)
                 player_momentum = (
-                    player_momentum[0] * (1 - 2 * portal.other["reflect_x"]),
-                    player_momentum[1] * (1 - 2 * portal.other["reflect_y"])
+                    player_momentum[0] * (1 - 2 * portal.other[Portal.reflect_x]),
+                    player_momentum[1] * (1 - 2 * portal.other[Portal.reflect_y])
                 )
                 player_momentum = (
-                    player_momentum[0] * cos(portal.other["rotation"]) + player_momentum[1] * sin(
-                        portal.other["rotation"]),
-                    player_momentum[1] * cos(portal.other["rotation"]) - player_momentum[0] * sin(
-                        portal.other["rotation"])
+                    player_momentum[0] * cos(portal.other[Portal.rotation]) + player_momentum[1] * sin(
+                        portal.other[Portal.rotation]),
+                    player_momentum[1] * cos(portal.other[Portal.rotation]) - player_momentum[0] * sin(
+                        portal.other[Portal.rotation])
                 )
                 stop = True
             if "easter egg" in new_touched:
                 if (self.after_game == "level_select" and self.custom == 0) or self.admin:
                     for check in new_touched["easter egg"]:
                         block_info[check.coordinates[0:2]].type = ""
-                        if block_info[check.coordinates[0:2]].other["type"] == "level":
-                            self.give_level(block_info[check.coordinates[0:2]].other["level"])
-                        elif block_info[check.coordinates[0:2]].other["type"] == "skin":
-                            self.give_skin(block_info[check.coordinates[0:2]].other["skin"])
-                        elif block_info[check.coordinates[0:2]].other["type"] == "achievement":
-                            self.give_achievement(block_info[check.coordinates[0:2]].other["achievement"])
+                        match block_info[check.coordinates[0:2]].other[EasterEgg.type]:
+                            case "level":
+                                self.give_level(block_info[check.coordinates[0:2]].other[EasterEgg.level])
+                            case "skin":
+                                self.give_skin(block_info[check.coordinates[0:2]].other[EasterEgg.skin])
+                            case "achievement":
+                                self.give_achievement(block_info[check.coordinates[0:2]].other[EasterEgg.achievement])
                         block_info[check.coordinates[0:2]].other = ()
                 else:
                     self.alerts.add_alert("Cannot collect easter eggs in construction zone or from custom levels!")
@@ -533,7 +535,7 @@ class InGame(Utility):
                         block_info[check.coordinates[0:2]].type = ""
                         block_info[check.coordinates[0:2]].other = ()
             if "msg" in new_touched:
-                draw_game_message(new_touched["msg"][0].other["text"])
+                draw_game_message(new_touched["msg"][0].other[HasTextField.text])
             gravity_info = tuple(gravity)
             return player_pos, player_momentum, set(new_touched), new_scheduled, ground, stop
 

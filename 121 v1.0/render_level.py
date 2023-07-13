@@ -8,7 +8,7 @@ from pygame.draw import line, lines, polygon, circle
 from pygame.transform import smoothscale
 from pygame.font import Font
 from math import floor
-from block_data import Block
+from block_data import *
 from typing import Union
 from constants import BLOCK_FILLS, BARRIER_COLORS
 
@@ -156,12 +156,12 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
     if block.type == "jump":
         draw_arrow(
             res,
-            (block.other["rotation"] - (1 - block.other["grav_locked"]) * gravity) % 4,
-            tuple(((1 - block.other["grav_locked"]) * 255,) * 3),
+            (block.other[PointedBlock.rotation] - (1 - block.other[PointedBlock.grav_locked]) * gravity) % 4,
+            tuple(((1 - block.other[PointedBlock.grav_locked]) * 255,) * 3),
             scale
         )
     elif block.type == "repel":
-        if block.other["mode"] == 1:
+        if block.other[Repel.mode] == 1:
             lines(
                 res,
                 (255, 255, 255),
@@ -190,11 +190,11 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
                 round(scale / 12)
             )
     elif block.type == "gravity":
-        if block.other["type"] == "set":
+        if block.other[Gravity.type] == "set":
             res.blit(
                 smoothscale(
                     font.render(
-                        "=+-x/"[block.other["mode"]] + str(clean_decimal(block.other["value"])),
+                        "=+-x/"[block.other[Gravity.mode]] + str(clean_decimal(block.other[Gravity.value])),
                         True,
                         (0, 0, 0),
                         None
@@ -206,8 +206,8 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
         else:
             draw_arrow(
                 res,
-                (block.other["rotation"] - (1 - block.other["grav_locked"]) * gravity) % 4,
-                tuple(((1 - block.other["grav_locked"]) * 255,) * 3),
+                (block.other[Gravity.rotation] - (1 - block.other[Gravity.grav_locked]) * gravity) % 4,
+                tuple(((1 - block.other[Gravity.grav_locked]) * 255,) * 3),
                 scale
             )
     elif block.type == "easter egg":
@@ -221,8 +221,8 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
     elif block.type == "activator":
         draw_arrow(
             res,
-            (block.other["rotation"] - (1 - block.other["grav_locked"]) * gravity) % 4,
-            tuple(((1 - block.other["grav_locked"]) * 255,) * 3),
+            (block.other[Activator.rotation] - (1 - block.other[Activator.grav_locked]) * gravity) % 4,
+            tuple(((1 - block.other[Activator.grav_locked]) * 255,) * 3),
             scale
         )
         circle(
@@ -252,7 +252,7 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
         res.blit(
             smoothscale(
                 font.render(
-                    str(clean_decimal(block.other["delay"])),
+                    str(clean_decimal(block.other[Activator.delay])),
                     True,
                     (128, 128, 128),
                     None
@@ -370,15 +370,15 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
             round(scale / 6)
         )
     elif block.type == "fragile ground":
-        if "sturdiness" not in block.other:
+        if FragileGround.sturdiness not in block.other:
             print(block.other)
-        color = 180 - 6 * block.other["sturdiness"]
+        color = 180 - 6 * block.other[FragileGround.sturdiness]
         res.fill((color, color, color))
     elif block.type == "destroyer":
         draw_arrow(
             res,
-            (block.other["rotation"] - (1 - block.other["grav_locked"]) * gravity) % 4,
-            tuple(((1 - block.other["grav_locked"]) * 255,) * 3),
+            (block.other[Destroyer.rotation] - (1 - block.other[Destroyer.grav_locked]) * gravity) % 4,
+            tuple(((1 - block.other[Destroyer.grav_locked]) * 255,) * 3),
             scale
         )
         circle(
@@ -408,10 +408,10 @@ def draw_block(block: Block, gravity: int, font: Font, scale: int = 60) -> Surfa
     elif block.type == "rotator":
         draw_arrow(
             res,
-            (block.other["rotation"] - (1 - block.other["grav_locked"]) * gravity) % 4,
-            tuple(((1 - block.other["grav_locked"]) * 255,) * 3),
+            (block.other[Rotator.rotation] - (1 - block.other[Rotator.grav_locked]) * gravity) % 4,
+            tuple(((1 - block.other[Rotator.grav_locked]) * 255,) * 3),
             scale,
-            2 - block.other["mode"] + block.other.get("grav_account", 0)
+            2 - block.other[Rotator.mode] + block.other.get(Rotator.grav_account, 0)
         )
         circle(
             res,

@@ -8,7 +8,7 @@ from render_level import draw_level, draw_block, sin, cos, draw_arrow, clean_dec
 from pyperclip import paste
 from level_data import Level
 from game_structures import Button
-from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BLOCK_DESCRIPTIONS, BUTTON_COUNT
+from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BLOCK_DESCRIPTIONS, BUTTON_COUNT, FieldType
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
 from block_data import Block
@@ -63,7 +63,8 @@ class Construction(Utility):
             saves the current editing level in a way that will never crash.
             :return: nothing
             """
-            self.working_on[self.constructing] = encode_level_to_string(self.level_data)
+            if isinstance(self.level_data, Level):
+                self.working_on[self.constructing] = encode_level_to_string(self.level_data)
 
         def load_editing_level(index: int) -> None:
             """
@@ -87,41 +88,78 @@ class Construction(Utility):
             updates name placard to new value and handles moving iter buttons
             :return:None
             """
-            if name is None:
-                name = self.level_data.name
-            name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+            if not isinstance(self.level_data, Level):
 
-            width = name_button.get_width()
-            if width > 512:
-                name_button = self.draw_text(
-                    name,
-                    75 * 512 / width,
-                    max_line_pixels=240 * 6 * 512 / width,
-                    preserve_words=True
-                )
+                name = "ERROR"
+                name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+
                 width = name_button.get_width()
-            self.replace_button(2, Button(
-                self.write_button_text,
-                name_button,
-                name,
-                name_button.get_rect(center=(240 * 2, 50)),
-                (255, 255, 255),
-                (0, 0, 0),
-                (0.5, 0.5),
-                outline_width=5,
-                arguments={
-                    "index": 2,
-                    "font": 75,
-                    "max_characters": 100,
-                    "min_characters": 2,
-                    "others": [
-                        (3, -0.5, 0, -40, 0),
-                        (4, 0.5, 0, 40, 0)
-                    ],
-                    "max_line_pixels": 240 * 6,
-                    "max_width": 512,
-                }
-            ))
+                if width > 512:
+                    name_button = self.draw_text(
+                        name,
+                        75 * 512 / width,
+                        max_line_pixels=240 * 6 * 512 / width,
+                        preserve_words=True
+                    )
+                    width = name_button.get_width()
+                self.replace_button(2, Button(
+                    None,
+                    name_button,
+                    name,
+                    name_button.get_rect(center=(240 * 2, 50)),
+                    (255, 255, 255),
+                    (0, 0, 0),
+                    (0.5, 0.5),
+                    outline_width=5,
+                    arguments={
+                        "index": 2,
+                        "font": 75,
+                        "max_characters": 100,
+                        "min_characters": 2,
+                        "others": [
+                            (3, -0.5, 0, -40, 0),
+                            (4, 0.5, 0, 40, 0)
+                        ],
+                        "max_line_pixels": 240 * 6,
+                        "max_width": 512,
+                    }
+                ))
+            else:
+                if name is None:
+                    name = self.level_data.name
+                name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+
+                width = name_button.get_width()
+                if width > 512:
+                    name_button = self.draw_text(
+                        name,
+                        75 * 512 / width,
+                        max_line_pixels=240 * 6 * 512 / width,
+                        preserve_words=True
+                    )
+                    width = name_button.get_width()
+                self.replace_button(2, Button(
+                    self.write_button_text,
+                    name_button,
+                    name,
+                    name_button.get_rect(center=(240 * 2, 50)),
+                    (255, 255, 255),
+                    (0, 0, 0),
+                    (0.5, 0.5),
+                    outline_width=5,
+                    arguments={
+                        "index": 2,
+                        "font": 75,
+                        "max_characters": 100,
+                        "min_characters": 2,
+                        "others": [
+                            (3, -0.5, 0, -40, 0),
+                            (4, 0.5, 0, 40, 0)
+                        ],
+                        "max_line_pixels": 240 * 6,
+                        "max_width": 512,
+                    }
+                ))
 
             if self.constructing == 0:
                 self.replace_button(3, None)
@@ -151,13 +189,24 @@ class Construction(Utility):
             changes game image after a change
             :return: None
             """
-            # noinspection PyTypeChecker
-            self.level_display = draw_level(
-                *make_playable(self.level_data),
-                player_imgs[self.level_data.gravity[0]],
-                self.fonts[20],
-                40
-            )
+            if isinstance(self.level_data, TypeError):
+                self.level_display = self.draw_text(
+                    "Level does not have a valid version indicator.",
+                    40
+                )
+            elif isinstance(self.level_data, ValueError):
+                self.level_display = self.draw_text(
+                    "There was an error loading level.",
+                    40
+                )
+            else:
+                # noinspection PyTypeChecker
+                self.level_display = draw_level(
+                    *make_playable(self.level_data),
+                    player_imgs[self.level_data.gravity[0]],
+                    self.fonts[20],
+                    40
+                )
 
         if self.constructing == len(self.working_on):
             self.level_data = make_blank_level()
@@ -392,17 +441,17 @@ class Construction(Utility):
             """
             field_name, display_name, field_type, default, conditional, *args = BLOCK_CONSTRUCTION[editing_block][
                 field_index]
-            if field_type == "boolean":
+            if field_type == FieldType.boolean:
                 editing_block_fields[editing_block][field] = not editing_block_fields[editing_block][field]
-            if field_type == "iterator":
+            if field_type == FieldType.iterator:
                 editing_block_fields[editing_block][field] = args[0] + (
                         editing_block_fields[editing_block][field] + kwargs["direction"] * args[2] - args[0]
                 ) % (args[1] - args[0])
-            if field_type == "list":
+            if field_type == FieldType.list:
                 editing_block_fields[editing_block][field] = args[0][
                     (args[0].index(editing_block_fields[editing_block][field]) + 1) % len(args[0])
                     ]
-            if field_type == "text":
+            if field_type == FieldType.text:
                 set_block = editing_block
 
                 others = []
@@ -524,7 +573,7 @@ class Construction(Utility):
                         self.replace_button(index, None)
                         index += 1
                     continue
-                if field_type == "boolean":
+                if field_type == FieldType.boolean:
                     if len(args) > 0:
                         display = args[0][value]
                     else:
@@ -545,7 +594,7 @@ class Construction(Utility):
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += 6 + self.buttons[index].rect.height
                     index += 1
-                elif field_type == "iterator":
+                elif field_type == FieldType.iterator:
                     if len(args) > 3:
                         display = args[3][round((value - args[0]) / args[2])]
                     else:
@@ -591,7 +640,7 @@ class Construction(Utility):
                     ))
                     index += 1
                     y += 6 + max(self.buttons[index - 1].rect.height, self.buttons[index - 3].rect.height)
-                elif field_type == "list":
+                elif field_type == FieldType.list:
                     if len(args) > 1:
                         display = args[0][value]
                     else:
@@ -612,7 +661,7 @@ class Construction(Utility):
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += 6 + self.buttons[index].rect.height
                     index += 1
-                elif field_type == "text":
+                elif field_type == FieldType.text:
                     self.replace_button(index, self.make_text_button(
                         f"{display_name}: {value}",
                         12,
@@ -629,6 +678,49 @@ class Construction(Utility):
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += self.buttons[index].rect.height + 6
                     index += 1
+                elif field_type == FieldType.freeform_num:
+                    display = value
+                    button = self.make_text_button(
+                        f"{display_name}: {display}",
+                        12,
+                        None,
+                        (
+                            construction_center,
+                            y - 7
+                        ),
+                        max_line_pixels=total_width,
+                        y_align=0,
+                        border_width=5,
+                    )
+                    button.inflate_center = (0.5, 0.5)
+                    offset = round(button.img.get_width() / 2 + 20)
+                    self.replace_button(index, button)
+                    index += 1
+                    self.replace_button(index, self.make_text_button(
+                        "<",
+                        12,
+                        change_field,
+                        (
+                            construction_center - offset,
+                            y
+                        ),
+                        border_width=5,
+                        arguments={"field": field_name, "field_index": field_index, "direction": -1}
+                    ))
+                    index += 1
+                    self.replace_button(index, self.make_text_button(
+                        ">",
+                        12,
+                        change_field,
+                        (
+                            construction_center + offset,
+                            y
+                        ),
+                        border_width=5,
+                        arguments={"field": field_name, "field_index": field_index, "direction": 1}
+                    ))
+                    index += 1
+                    y += 6 + max(self.buttons[index - 1].rect.height, self.buttons[index - 3].rect.height)
 
         editing_barrier = ["delete", False, [True, True, True, True]]
 
@@ -809,6 +901,9 @@ class Construction(Utility):
             """
             if self.typing.typing and self.typing.button_target > 10:
                 self.end_typing()
+            if not isinstance(self.level_data, Level):
+                del self.buttons[11:]
+                return
             nonlocal construction_pointer
             construction_pointer = (construction_pointer + index_change) % len(CONSTRUCTION_MENUS)
             self.replace_button(8, self.make_text_button(
