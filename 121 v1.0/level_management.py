@@ -51,7 +51,7 @@ def make_playable(
                 blocks[coordinates].other["link"] = i
             else:
                 blocks[coordinates] = Block(
-                    "",
+                    Blocks.air,
                     [],
                     {"link": i}
                 )
@@ -160,8 +160,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
     :param published: if it was successfully published (previously assumed to be true)
     :return: a fully organized level object
     """
-
-    # print(level_string)
 
     def decode_length_indicator(start: int, prev: int = 1, string: str = level_string) -> tuple[int, int]:
         """
@@ -322,7 +320,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             barriers = list()
             attributes = dict()
             if block_data[0] == letter_code[99]:
-                typ = ""
+                typ = Blocks.air
             else:
                 typ = BLOCKS[letter_code.index(block_data[0])]
             i2 = 0
@@ -451,7 +449,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             barriers = list()
             attributes = dict()
             if block_data[0] == letter_code[99]:
-                typ = ""
+                typ = Blocks.air
             else:
                 typ = BLOCKS[letter_code.index(block_data[0])]
                 # print(block_data[0], letter_code.index(block_data[0]), typ)
@@ -679,7 +677,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         # print(level.blocks.keys())
         return level
     else:
-        return TypeError("Level code does not start with a version indicator.")
+        return TypeError("Level code does not start with a valid version indicator. (might be invalid code or game version might be out of date)")
 
 
 # noinspection IncorrectFormatting
@@ -731,7 +729,7 @@ def encode_level_to_string(level_data: Level) -> str:
         level_string += letter_code[player[0]] + letter_code[player[1]]  # saves indidual player starts
     block_saves = dict()
     for coordinates, block in level_data.blocks.items():  # loops through block items in block save, makes save code
-        if block.type == "" and block.barriers == []:
+        if block.type == Blocks.air and block.barriers == [] and "link" not in block.other:
             continue
         specific_save = ""
         specific_save += letter_code[BLOCKS.index(block.type)]  # adds type indicator to specific save

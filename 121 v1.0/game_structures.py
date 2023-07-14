@@ -314,7 +314,7 @@ class Collision:
     direction: int
     local: bool = False
     coordinates: tuple[int, int] = ()
-    other: dict[str, Any] = ()
+    other: dict[int, Any] = ()
 
 
 @dataclass()

@@ -14,6 +14,7 @@ from render_level import draw_block
 from block_data import Block
 from game_structures import Button
 from level_data import Level
+from block_data import EasterEgg
 
 
 class LevelSelect(Utility):
@@ -155,7 +156,7 @@ class LevelSelect(Utility):
                 name_placard.blit(name_button, (0, 0))
             if name not in LEVEL_LIST and self.custom == 0:
                 name_placard.blit(
-                    draw_block(Block("easter egg", []), 0, self.fonts[50], 5 * height / 8),
+                    draw_block(Block(EasterEgg, []), 0, self.fonts[50], 5 * height / 8),
                     (width - 5 * height / 8, 3 * height / 16)
                 )
                 name_desc += ", Easter Egg"

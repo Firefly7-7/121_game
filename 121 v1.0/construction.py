@@ -4,11 +4,11 @@ holds level editing area
 
 from utility import Utility
 from level_management import make_blank_level, encode_level_to_string, decode_safety_wrap, make_playable
-from render_level import draw_level, draw_block, sin, cos, draw_arrow, clean_decimal, degree_to_rgb
+from render_level import draw_level, draw_block, clean_decimal, degree_to_rgb
 from pyperclip import paste
 from level_data import Level
 from game_structures import Button
-from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BLOCK_DESCRIPTIONS, BUTTON_COUNT, FieldType
+from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BUTTON_COUNT, FieldType
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
 from block_data import Block
