@@ -88,7 +88,7 @@ class QueueSpeech:
 
     def next_speach(self) -> None:
         """
-        goes to the next
+        goes to the next_
         :return:
         """
         # print("Next")

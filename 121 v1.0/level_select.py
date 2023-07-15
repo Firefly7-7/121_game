@@ -2,18 +2,16 @@
 contains class for level select area
 """
 
-from level_management import unpack_level, decode_safety_wrap, save_level, make_playable, encode_level_to_string
+from level_management import unpack_level, decode_safety_wrap, save_level, encode_level_to_string
 from utility import Utility, LEVEL_LIST
 from pyperclip import paste, copy
 from os import listdir, remove
-from render_level import draw_level
 from pygame import Surface
 from pygame.draw import lines
 from pygame.transform import rotate
-from render_level import draw_block
 from block_data import Block
 from game_structures import Button
-from level_data import Level
+from level_data import LevelWrap
 from block_data import EasterEgg
 
 
@@ -97,14 +95,15 @@ class LevelSelect(Utility):
                 self.replace_button(3, None)
                 self.replace_button(10, None)
             else:
+                self.level_data.prepare_for_play()
                 # noinspection PyTypeChecker
-                self.level_display = draw_level(
-                    *make_playable(self.level_data),
-                    rotate(self.player_img, 90 * self.level_data.gravity[0]),
-                    self.fonts[20], 40
+                self.level_display = self.level_data.render_level(
+                    40,
+                    self.fonts[20],
+                    tuple(rotate(self.player_img, 90 * i) for i in range(4))
                 )
                 length = 1
-                track = self.level_data
+                track = self.level_data.level_on
                 while track.next is not None:
                     length += 1
                     track = track.next
@@ -156,7 +155,7 @@ class LevelSelect(Utility):
                 name_placard.blit(name_button, (0, 0))
             if name not in LEVEL_LIST and self.custom == 0:
                 name_placard.blit(
-                    draw_block(Block(EasterEgg, []), 0, self.fonts[50], 5 * height / 8),
+                    self.level_data.draw_block(Block(EasterEgg, []), self.fonts[50], 5 * height / 8),
                     (width - 5 * height / 8, 3 * height / 16)
                 )
                 name_desc += ", Easter Egg"
@@ -246,8 +245,8 @@ class LevelSelect(Utility):
             moves to construction area to edit current level
             :return: none
             """
-            if isinstance(self.level_data, Level):
-                while isinstance(self.level_data, Level):
+            if isinstance(self.level_data, LevelWrap):
+                while isinstance(self.level_data, LevelWrap):
                     self.working_on.append(encode_level_to_string(self.level_data))
                     self.alerts.add_alert(
                         f"Imported level '{self.level_data.name}' from level select to level construction."
@@ -326,7 +325,7 @@ class LevelSelect(Utility):
         # 8: -1 level button [dynamic] (done)
         # 9: +1 level button [dynamic] (done)
 
-        def copy_level(level: Level) -> None:
+        def copy_level(level: LevelWrap) -> None:
             """
             copies level data to clipboard
             :param level: level object

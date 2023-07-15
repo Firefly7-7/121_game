@@ -139,15 +139,15 @@ achievement_list = tuple(sorted(list(BASE_ACHIEVEMENTS.keys())))
 # for level saving.  DO NOT CHANGE ORDERING, only add to end
 # noinspection IncorrectFormatting
 BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.jump, Blocks.gravity, Blocks.easter_egg, Blocks.repel, Blocks.activator, Blocks.coin, Blocks.msg, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.air, Blocks.ice, Blocks.portal, Blocks.achievement_goal, Blocks.fragile_ground, Blocks.destroyer, Blocks.rotator)
-BARRIERS: tuple[str, ...] = (Blocks.ground, Blocks.lava, Blocks.repel, Blocks.mud, Blocks.sticky, Blocks.air, Blocks.ice, Blocks.goal, Blocks.bouncy)
+BARRIERS: tuple[BlockType, ...] = (Blocks.ground, Blocks.lava, Blocks.repel, Blocks.mud, Blocks.sticky, Blocks.air, Blocks.ice, Blocks.goal, Blocks.bouncy)
 
 # noinspection IncorrectFormatting
-WORKING_BLOCK_LIST: list[[str]] = [None, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer]
+WORKING_BLOCK_LIST: list[[BlockType]] = [None, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer]
 
 # for construction
 # noinspection IncorrectFormatting
-BLOCK_LIST: list[str] = [Blocks.delete, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.rotator]
-ADMIN_BLOCKS: list[str] = [Blocks.easter_egg, Blocks.achievement_goal]
+BLOCK_LIST: list[BlockType] = [Blocks.delete, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.rotator]
+ADMIN_BLOCKS: list[BlockType] = [Blocks.easter_egg, Blocks.achievement_goal]
 # dict of block type string to list of field tuples
 # entries into field list go as follows:
 # 0: name of field

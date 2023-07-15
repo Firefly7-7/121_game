@@ -3,20 +3,20 @@ holds level editing area
 """
 
 from utility import Utility
-from level_management import make_blank_level, encode_level_to_string, decode_safety_wrap, make_playable
-from render_level import draw_level, draw_block, clean_decimal, degree_to_rgb
+from level_management import make_blank_level, encode_level_to_string, decode_safety_wrap
 from pyperclip import paste
-from level_data import Level
+from level_data import LevelWrap
 from game_structures import Button
 from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BUTTON_COUNT, FieldType
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
-from block_data import Block
+from block_data import Block, Blocks, BlockType
 from copy import deepcopy, copy
 from math import ceil
 from typing import Union
 from pygame.surface import Surface
 from pygame.draw import circle
+from render_help import clean_decimal, degree_to_rgb, draw_arrow, cos, sin
 
 
 class Construction(Utility):
@@ -32,7 +32,7 @@ class Construction(Utility):
 
         def delete_current_level() -> None:
             """
-            deletes the current level and loads next one (handles edge cases for on end and empty)
+            deletes the current level and loads next_ one (handles edge cases for on end and empty)
             :return: None
             """
             del self.working_on[self.constructing]
@@ -51,10 +51,10 @@ class Construction(Utility):
             :return: None
             """
             if self.typing.typing and self.typing.button_target == 2:
-                self.level_data.name = self.typing.text
+                self.level_data.level_on.name = self.typing.text
                 self.end_typing()
             else:
-                self.level_data.name = self.button_names[2]
+                self.level_data.level_on.name = self.button_names[2]
             save_current_editing()
             load_editing_level(index)
 
@@ -63,7 +63,7 @@ class Construction(Utility):
             saves the current editing level in a way that will never crash.
             :return: nothing
             """
-            if isinstance(self.level_data, Level):
+            if isinstance(self.level_data, LevelWrap):
                 self.working_on[self.constructing] = encode_level_to_string(self.level_data)
 
         def load_editing_level(index: int) -> None:
@@ -75,7 +75,7 @@ class Construction(Utility):
             self.end_typing()
             self.constructing = index
             if index == len(self.working_on):
-                self.level_data = make_blank_level()
+                self.level_data = LevelWrap(make_blank_level())
                 self.working_on.append(encode_level_to_string(self.level_data))
             else:
                 self.level_data = decode_safety_wrap(self.working_on[index])
@@ -88,7 +88,7 @@ class Construction(Utility):
             updates name placard to new value and handles moving iter buttons
             :return:None
             """
-            if not isinstance(self.level_data, Level):
+            if not isinstance(self.level_data, LevelWrap):
 
                 name = "ERROR"
                 name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
@@ -126,7 +126,7 @@ class Construction(Utility):
                 ))
             else:
                 if name is None:
-                    name = self.level_data.name
+                    name = self.level_data.level_on.name
                 name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
 
                 width = name_button.get_width()
@@ -200,16 +200,16 @@ class Construction(Utility):
                     40
                 )
             else:
+                self.level_data.prepare_for_play()
                 # noinspection PyTypeChecker
-                self.level_display = draw_level(
-                    *make_playable(self.level_data),
-                    player_imgs[self.level_data.gravity[0]],
+                self.level_display = self.level_data.render_level(
+                    40,
                     self.fonts[20],
-                    40
+                    player_imgs
                 )
 
         if self.constructing == len(self.working_on):
-            self.level_data = make_blank_level()
+            self.level_data = LevelWrap(make_blank_level())
             self.working_on.append(encode_level_to_string(self.level_data))
         else:
             self.level_data = decode_safety_wrap(self.working_on[self.constructing])
@@ -239,7 +239,7 @@ class Construction(Utility):
             """
             code = paste()
             level = decode_safety_wrap(code)
-            if isinstance(level, Level):
+            if isinstance(level, LevelWrap):
                 self.level_data = level
                 self.constructing = len(self.working_on)
                 self.working_on.append(code)
@@ -296,16 +296,16 @@ class Construction(Utility):
             name_append = ""
             copies = 0
             custom_names = {self.levels[1][lvl_index][0] for lvl_index in range(len(self.levels[1]))}
-            while self.level_data.name + name_append in custom_names:
+            while self.level_data.level_on.name + name_append in custom_names:
                 copies += 1
                 name_append = "(" + str(copies) + ")"
 
-            name = f"custom_levels/{self.level_data.name}.txt"
+            name = f"custom_levels/{self.level_data.level_on.name}.txt"
             with open(name, "w", encoding="utf-8") as file:
                 file.write(self.working_on[self.constructing])
 
             self.look_at[1] = len(self.levels[1])
-            self.levels[1].append((self.level_data.name, False))
+            self.levels[1].append((self.level_data.level_on.name, False))
             self.custom = 1
             self.place = "level_select"
 
@@ -358,7 +358,7 @@ class Construction(Utility):
                 # print(coords)
                 # print(self.level_data.player_starts)
                 player_grabbed = coords
-                self.level_data.player_starts.remove(coords)
+                self.level_data.level_on.player_starts.remove(coords)
                 update_game_image()
                 button = 12
                 while True:
@@ -374,14 +374,13 @@ class Construction(Utility):
             :param change: how much to change it by
             :return: None
             """
-            grav = list(self.level_data.gravity)
-            grav[index] = clean_decimal((1 - 2 * index) * (((1 - 2 * index) * grav[index] + change) % (4 - 1.25 * index)
-                                                           ))
-            self.level_data.gravity = grav
+            self.level_data.level_on.gravity[index] = clean_decimal(
+                (1 - 2 * index) * (((1 - 2 * index) * self.level_data.level_on.gravity[index] + change) % (4 - 1.25 * index))
+            )
             update_game_image()
             update_construction_area(0)
 
-        editing_block = "delete"
+        editing_block: BlockType = Blocks.delete
         editing_block_fields = dict()
         for block_name, field_list in BLOCK_CONSTRUCTION.items():
             editing_block_fields[block_name] = {
@@ -394,7 +393,7 @@ class Construction(Utility):
         line_spacing = total_width // per_line
         construction_center = round(240 * 3 + self.level_display.get_width() / 4)
 
-        def switch_construction_block(block_name_switch: str) -> None:
+        def switch_construction_block(block_name_switch: BlockType) -> None:
             """
             switches the construction_block used
             :param block_name_switch:
@@ -405,7 +404,7 @@ class Construction(Utility):
                 self.end_typing()
             editing_block = block_name_switch
             self.replace_button(11 + len(BLOCK_LIST), self.make_text_button(
-                editing_block.title(),
+                editing_block.name,
                 30,
                 None,
                 (
@@ -417,7 +416,7 @@ class Construction(Utility):
                 text_align=0.5
             ))
             self.replace_button(13 + len(BLOCK_LIST), self.make_text_button(
-                BLOCK_DESCRIPTIONS[editing_block],
+                editing_block.description,
                 10,
                 None,
                 (
@@ -504,22 +503,21 @@ class Construction(Utility):
             index = 14 + len(BLOCK_LIST)
             self.replace_button(11 + BLOCK_LIST.index(editing_block), self.make_img_button(
                 switch_construction_block,
-                draw_block(
+                self.level_data.draw_block(
                     Block(
                         editing_block,
                         [],
                         editing_block_fields[editing_block]
                     ),
-                    self.level_data.gravity[0],
                     self.fonts[scale],
                     scale
                 ),
                 (
-                    construction_center + (
-                            BLOCK_LIST.index(editing_block) % per_line - per_line / 2 + 0.5) * line_spacing,
+                    round(construction_center + (
+                            BLOCK_LIST.index(editing_block) % per_line - per_line / 2 + 0.5) * line_spacing),
                     round(165 + (BLOCK_LIST.index(editing_block) // per_line + 0.5) * line_spacing)
                 ),
-                editing_block,
+                editing_block.name,
                 arguments={"block_name_switch": editing_block}
             ))
 
@@ -530,13 +528,12 @@ class Construction(Utility):
 
             y += self.buttons[11 + len(BLOCK_LIST)].img.get_height()
 
-            block_img = draw_block(
+            block_img = self.level_data.draw_block(
                 Block(
                     editing_block,
                     [],
                     editing_block_fields[editing_block]
                 ),
-                self.level_data.gravity[0],
                 self.fonts[60],
                 60
             )
@@ -722,7 +719,7 @@ class Construction(Utility):
                     index += 1
                     y += 6 + max(self.buttons[index - 1].rect.height, self.buttons[index - 3].rect.height)
 
-        editing_barrier = ["delete", False, [True, True, True, True]]
+        editing_barrier: list[BlockType, bool, list[bool]] = [Blocks.delete, False, [True, True, True, True]]
 
         def switch_construction_barrier(barrier: str) -> None:
             """
@@ -731,7 +728,7 @@ class Construction(Utility):
             :return: none
             """
             nonlocal editing_barrier
-            reinitialize = barrier == "delete" or editing_barrier[0] == "delete"
+            reinitialize = barrier == Blocks.delete or editing_barrier[0] == Blocks.delete
             editing_barrier[0] = barrier
             if reinitialize:
                 update_construction_area(0)
@@ -743,30 +740,28 @@ class Construction(Utility):
             updates big barrier image to new value in editing_barrier[0]
             :return: nothing
             """
-            if editing_barrier[0] == "delete":
-                self.buttons[17 + len(BARRIERS)].img = draw_block(
+            if editing_barrier[0] == Blocks.delete:
+                self.buttons[17 + len(BARRIERS)].img = self.level_data.draw_block(
                     Block(
-                        "delete",
+                        Blocks.delete,
                         []
                     ),
-                    0,
                     self.fonts[10],
                     80
                 )
             else:
-                self.buttons[17 + len(BARRIERS)].img = draw_block(
+                self.buttons[17 + len(BARRIERS)].img = self.level_data.draw_block(
                     Block(
-                        "",
+                        Blocks.air,
                         [(editing_barrier[0], editing_barrier[1], tuple(editing_barrier[2]))]
                     ),
-                    0,
                     self.fonts[10],
                     80
                 )
             self.buttons[17 + len(BARRIERS)].rect = self.buttons[17 + len(BARRIERS)].img.get_rect(center=self.buttons[
                 17 + len(BARRIERS)].rect.center)
             self.replace_button(18 + len(BARRIERS), self.make_text_button(
-                editing_barrier[0].title(),
+                editing_barrier[0].name,
                 20,
                 None,
                 (
@@ -850,7 +845,7 @@ class Construction(Utility):
             elif place == "Remove":
                 self.add_button(self.make_img_button(
                     None,
-                    draw_block(Block("delete", []), 0, self.fonts[60], 100),
+                    self.level_data.draw_block(Block(Blocks.delete, []), self.fonts[60], 100),
                     (construction_center, 222),
                     "delete mode"
                 ))
@@ -862,19 +857,19 @@ class Construction(Utility):
             :return: None
             """
             nonlocal editing_link
-            editing_link[1] = (editing_link[1] + change) % (len(self.level_data.links) + 1)
-            if editing_link[1] == len(self.level_data.links):
-                if not self.level_data.links[-1]:
+            editing_link[1] = (editing_link[1] + change) % (len(self.level_data.level_on.links) + 1)
+            if editing_link[1] == len(self.level_data.level_on.links):
+                if not self.level_data.level_on.links[-1]:
                     if change > 0:
                         editing_link[1] = 0
                     else:
-                        editing_link[1] = len(self.level_data.links) - 1
+                        editing_link[1] = len(self.level_data.level_on.links) - 1
                 else:
-                    self.level_data.links.append([])
-            if len(self.level_data.links) > editing_link[1] + 1 and not self.level_data.links[editing_link[1]]:
-                while len(self.level_data.links) > editing_link[1] + 1 and not self.level_data.links[editing_link[1]]:
-                    del self.level_data.links[editing_link[1]]
-                    editing_link[1] = (editing_link[1] + change) % len(self.level_data.links)
+                    self.level_data.level_on.links.append([])
+            if len(self.level_data.level_on.links) > editing_link[1] + 1 and not self.level_data.level_on.links[editing_link[1]]:
+                while len(self.level_data.level_on.links) > editing_link[1] + 1 and not self.level_data.level_on.links[editing_link[1]]:
+                    del self.level_data.level_on.links[editing_link[1]]
+                    editing_link[1] = (editing_link[1] + change) % len(self.level_data.level_on.links)
                 update_game_image()
             self.replace_button(14, self.make_text_button(
                 f"Link # {editing_link[1] + 1}",
@@ -901,7 +896,7 @@ class Construction(Utility):
             """
             if self.typing.typing and self.typing.button_target > 10:
                 self.end_typing()
-            if not isinstance(self.level_data, Level):
+            if not isinstance(self.level_data, LevelWrap):
                 del self.buttons[11:]
                 return
             nonlocal construction_pointer
@@ -922,14 +917,14 @@ class Construction(Utility):
             if construction_pointer == 0:  # players editing
                 self.add_button(self.make_img_button(
                     grab_player,
-                    player_imgs[self.level_data.gravity[0]],
+                    player_imgs[self.level_data.level_on.gravity[0]],
                     (240 * 3 + display_width / 4, 200),
                     "new player"
                 ))
-                for coords in self.level_data.player_starts:
+                for coords in self.level_data.level_on.player_starts:
                     self.add_button(Button(
                         grab_player,
-                        player_imgs[self.level_data.gravity[0]],
+                        player_imgs[self.level_data.level_on.gravity[0]],
                         f"at {coords[0]}, {coords[1]}",
                         scaled_player.get_rect(center=(
                             240 * 2 - display_width / 2 - 20 + 40 * coords[0] + 1,
@@ -942,23 +937,23 @@ class Construction(Utility):
             elif construction_pointer == 1:  # gravity setting
                 arrow = Surface((60, 60))
                 arrow.fill((255, 255, 255))
-                draw_arrow(arrow, (2 - self.level_data.gravity[0]) % 4, (0, 0, 0), 60)
+                draw_arrow(arrow, (2 - self.level_data.level_on.gravity[0]) % 4, (0, 0, 0), 60)
                 self.add_button(self.make_img_button(
                     None,
                     arrow,
                     (construction_center, 200),
-                    f"Gravity is pointing {('down', 'right', 'up', 'left')[self.level_data.gravity[0]]} with strength "
-                    f"{self.level_data.gravity[1]}."
+                    f"Gravity is pointing {('down', 'right', 'up', 'left')[self.level_data.level_on.gravity[0]]} with strength "
+                    f"{self.level_data.level_on.gravity[1]}."
                 ))
                 self.add_button(self.make_text_button(
-                    f"Strength: {-1 * self.level_data.gravity[1]}",
+                    f"Strength: {-1 * self.level_data.level_on.gravity[1]}",
                     16,
                     None,
                     (construction_center, 260),
                     border_width=5
                 ))
                 width = self.buttons[-1].rect.width / 2 + 20
-                if self.level_data.gravity[1] >= 0:
+                if self.level_data.level_on.gravity[1] >= 0:
                     self.add_button(None)
                 else:
                     self.add_button(self.make_text_button(
@@ -969,7 +964,7 @@ class Construction(Utility):
                         border_width=5,
                         arguments={"index": 1, "change": -0.25}
                     ))
-                if self.level_data.gravity[1] <= -2.5:
+                if self.level_data.level_on.gravity[1] <= -2.5:
                     self.add_button(None)
                 else:
                     self.add_button(self.make_text_button(
@@ -981,7 +976,7 @@ class Construction(Utility):
                         arguments={"index": 1, "change": 0.25}
                     ))
                 self.add_button(self.make_text_button(
-                    f"Direction: {('down', 'right', 'up', 'left')[self.level_data.gravity[0]]}",
+                    f"Direction: {('down', 'right', 'up', 'left')[self.level_data.level_on.gravity[0]]}",
                     16,
                     None,
                     (construction_center, 300),
@@ -1008,13 +1003,12 @@ class Construction(Utility):
                 for construction_i, construction_block in enumerate(BLOCK_LIST):  # 11:10+len(BLOCK_LIST): blocks
                     self.add_button(self.make_img_button(
                         switch_construction_block,
-                        draw_block(
+                        self.level_data.draw_block(
                             Block(
                                 construction_block,
                                 [],
                                 editing_block_fields[construction_block]
                             ),
-                            self.level_data.gravity[0],
                             self.fonts[scale],
                             scale
                         ),
@@ -1023,7 +1017,7 @@ class Construction(Utility):
                                                            ) * line_spacing,
                             round(165 + (construction_i // per_line + 0.5) * line_spacing)
                         ),
-                        construction_block,
+                        construction_block.name,
                         arguments={"block_name_switch": construction_block}
                     ))
                 self.add_button(None)  # 11 + len(BLOCK_LIST): construction_block name
@@ -1033,12 +1027,11 @@ class Construction(Utility):
             elif construction_pointer == 3:  # barriers setting
                 self.add_button(self.make_img_button(
                     switch_construction_barrier,
-                    draw_block(
+                    self.level_data.draw_block(
                         Block(
-                            "delete",
+                            Blocks.delete,
                             []
                         ),
-                        self.level_data.gravity[0],
                         self.fonts[scale],
                         scale
                     ),
@@ -1046,19 +1039,18 @@ class Construction(Utility):
                         240 * 3 + display_width / 4 + (0 % per_line - per_line / 2 + 0.5) * line_spacing,
                         round(165 + (0 // per_line + 0.5) * line_spacing)
                     ),
-                    "delete",
-                    arguments={"barrier": "delete"}
+                    Blocks.delete,
+                    arguments={"barrier": Blocks.delete}
                 ))  # 11: delete option
                 y = 245 + ceil(len(BARRIERS) / per_line) * line_spacing
                 for construction_i, barrier in enumerate(BARRIERS):  # 12:11+len(BARRIERS): barriers
                     self.add_button(self.make_img_button(
                         switch_construction_barrier,
-                        draw_block(
+                        self.level_data.draw_block(
                             Block(
-                                "",
+                                Blocks.air,
                                 [(barrier, editing_barrier[1], (True, True, True, True))]
                             ),
-                            self.level_data.gravity[0],
                             self.fonts[scale],
                             scale
                         ),
@@ -1067,10 +1059,10 @@ class Construction(Utility):
                                     (construction_i + 1) % per_line - per_line / 2 + 0.5) * line_spacing,
                             round(165 + ((construction_i + 1) // per_line + 0.5) * line_spacing)
                         ),
-                        barrier,
+                        barrier.name,
                         arguments={"barrier": barrier}
                     ))
-                if editing_barrier[0] == "delete":
+                if editing_barrier[0] == Blocks.delete:
                     for direction in range(0, 4):  # 12 + len(BARRIER_LIST):15 + len(BARRIER_LIST): buttons
                         self.add_button(None)
                     self.add_button(None)  # 16 + len(BARRIER_LIST): grav lock
@@ -1078,12 +1070,11 @@ class Construction(Utility):
                     for direction in range(0, 4):  # 12 + len(BARRIER_LIST):15 + len(BARRIER_LIST): buttons
                         self.add_button(self.make_img_button(
                             update_barrier_side,
-                            draw_block(
+                            self.level_data.draw_block(
                                 Block(
-                                    "",
-                                    [("ground", False, (True, True, True, True))]
+                                    Blocks.air,
+                                    [(Blocks.ground, False, (True, True, True, True))]
                                 ),
-                                self.level_data.gravity[0],
                                 self.fonts[scale],
                                 scale=16
                             ),
@@ -1106,9 +1097,8 @@ class Construction(Utility):
                     ))  # 16 + len(BARRIER_LIST): grav lock
                 self.add_button(self.make_img_button(
                     None,
-                    draw_block(
-                        Block("lol", []),
-                        0,
+                    self.level_data.draw_block(
+                        Block(Blocks.air, []),
                         self.fonts[scale],
                         scale=2
                     ),
@@ -1184,8 +1174,8 @@ class Construction(Utility):
             if construction_pointer == 0:  # players
                 if click_tick and mouse_coords is not None:
                     if player_grabbed is not None and player_grabbed != mouse_coords:
-                        if mouse_coords not in self.level_data.player_starts:
-                            self.level_data.player_starts.append(mouse_coords)
+                        if mouse_coords not in self.level_data.level_on.player_starts:
+                            self.level_data.level_on.player_starts.append(mouse_coords)
                             self.add_button(Button(
                                 grab_player,
                                 scaled_player,
@@ -1204,13 +1194,13 @@ class Construction(Utility):
                 pass
             elif construction_pointer == 2:  # blocks case
                 if click_tick and mouse_coords is not None:
-                    if editing_block == "delete":
-                        if mouse_coords in self.level_data.blocks:
-                            if not self.level_data.blocks[mouse_coords].barriers:
-                                del self.level_data.blocks[mouse_coords]
+                    if editing_block == Blocks.delete:
+                        if mouse_coords in self.level_data.level_on.blocks:
+                            if not self.level_data.level_on.blocks[mouse_coords].barriers:
+                                del self.level_data.level_on.blocks[mouse_coords]
                             else:
-                                self.level_data.blocks[mouse_coords].type = ""
-                                self.level_data.blocks[mouse_coords].other = ()
+                                self.level_data.level_on.blocks[mouse_coords].type = Blocks.air
+                                self.level_data.level_on.blocks[mouse_coords].other = ()
                     else:
                         other = deepcopy(editing_block_fields[editing_block])
 
@@ -1219,11 +1209,11 @@ class Construction(Utility):
                                 if editing_block_fields[editing_block][check_field] not in check_condition:
                                     del other[block_prune_info[0]]
                                     break
-                        if mouse_coords in self.level_data.blocks:
-                            self.level_data.blocks[mouse_coords].type = editing_block
-                            self.level_data.blocks[mouse_coords].other = other
+                        if mouse_coords in self.level_data.level_on.blocks:
+                            self.level_data.level_on.blocks[mouse_coords].type = editing_block
+                            self.level_data.level_on.blocks[mouse_coords].other = other
                         else:
-                            self.level_data.blocks[mouse_coords] = Block(
+                            self.level_data.level_on.blocks[mouse_coords] = Block(
                                 editing_block,
                                 [],
                                 other
@@ -1231,47 +1221,47 @@ class Construction(Utility):
                     update_game_image()
             elif construction_pointer == 3:  # barriers case
                 if click_tick and mouse_coords is not None:
-                    if mouse_coords in self.level_data.blocks:
-                        if editing_barrier[0] == "delete":
-                            if len(self.level_data.blocks[mouse_coords].barriers) > 0:
-                                del self.level_data.blocks[mouse_coords].barriers[-1]
+                    if mouse_coords in self.level_data.level_on.blocks:
+                        if editing_barrier[0] is Blocks.delete:
+                            if len(self.level_data.level_on.blocks[mouse_coords].barriers) > 0:
+                                del self.level_data.level_on.blocks[mouse_coords].barriers[-1]
                                 update_game_image()
                         else:
-                            for i in reversed(range(0, len(self.level_data.blocks[mouse_coords].barriers))):
-                                if (self.level_data.blocks[mouse_coords].barriers[i][0] == editing_barrier[0] and
-                                        self.level_data.blocks[mouse_coords].barriers[i][1] == editing_barrier[1]):
-                                    self.level_data.blocks[mouse_coords].barriers.pop(i)
+                            for i in reversed(range(0, len(self.level_data.level_on.blocks[mouse_coords].barriers))):
+                                if (self.level_data.level_on.blocks[mouse_coords].barriers[i][0] is editing_barrier[0] and
+                                        self.level_data.level_on.blocks[mouse_coords].barriers[i][1] is editing_barrier[1]):
+                                    self.level_data.level_on.blocks[mouse_coords].barriers.pop(i)
                             if True in editing_barrier[2]:
-                                self.level_data.blocks[mouse_coords].barriers.append(
+                                self.level_data.level_on.blocks[mouse_coords].barriers.append(
                                     (editing_barrier[0], editing_barrier[1], tuple(editing_barrier[2])))
                             update_game_image()
                     else:
-                        if editing_barrier[0] != "delete" and True in editing_barrier[2]:
-                            self.level_data.blocks[mouse_coords] = Block(
-                                "",
+                        if editing_barrier[0] is not Blocks.delete and True in editing_barrier[2]:
+                            self.level_data.level_on.blocks[mouse_coords] = Block(
+                                Blocks.air,
                                 [(editing_barrier[0], editing_barrier[1], tuple(editing_barrier[2]))]
                             )
                             update_game_image()
             elif construction_pointer == 4:  # links case
                 if click_tick and mouse_coords is not None:
                     if editing_link[0] == "Remove":
-                        for i in range(len(self.level_data.links)):
-                            if mouse_coords in self.level_data.links[i]:
-                                self.level_data.links[i].remove(mouse_coords)
+                        for i in range(len(self.level_data.level_on.links)):
+                            if mouse_coords in self.level_data.level_on.links[i]:
+                                self.level_data.level_on.links[i].remove(mouse_coords)
                                 update_game_image()
                                 break
                     elif editing_link[0] == "Place":
-                        for i in range(len(self.level_data.links)):
-                            if mouse_coords in self.level_data.links[i]:
-                                self.level_data.links[i].remove(mouse_coords)
+                        for i in range(len(self.level_data.level_on.links)):
+                            if mouse_coords in self.level_data.level_on.links[i]:
+                                self.level_data.level_on.links[i].remove(mouse_coords)
                                 break
-                        if len(self.level_data.links) == editing_link[1]:
-                            self.level_data.links.append([])
-                        self.level_data.links[editing_link[1]].append(mouse_coords)
+                        if len(self.level_data.level_on.links) == editing_link[1]:
+                            self.level_data.level_on.links.append([])
+                        self.level_data.level_on.links[editing_link[1]].append(mouse_coords)
                         update_game_image()
                     elif editing_link[0] == "Pick":
-                        for i in range(len(self.level_data.links)):
-                            if mouse_coords in self.level_data.links[i]:
+                        for i in range(len(self.level_data.level_on.links)):
+                            if mouse_coords in self.level_data.level_on.links[i]:
                                 editing_link[1] = i
                                 switch_link_place("Place")
                                 break
@@ -1293,96 +1283,91 @@ class Construction(Utility):
                 if mouse_coords is not None:
                     drawn = Block(
                         editing_block,
-                        self.level_data.blocks.get(mouse_coords, Block("", [])).barriers,
+                        self.level_data.level_on.blocks.get(mouse_coords, Block(Blocks.air, [])).barriers,
                         copy(editing_block_fields[editing_block]),
                     )
-                    for i in range(len(self.level_data.links)):
-                        if mouse_coords in self.level_data.links[i]:
+                    for i in range(len(self.level_data.level_on.links)):
+                        if mouse_coords in self.level_data.level_on.links[i]:
                             drawn.other["link"] = i
                             break
                     self.screen.blit(
-                        draw_block(
+                        self.level_data.draw_block(
                             drawn,
-                            self.level_data.gravity[0],
                             self.fonts[40],
                             40
                         ),
                         (
-                            240 * 2 - self.level_data.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                            180 * 2 + self.level_data.dimensions[1] * 20 - mouse_coords[1] * 40
+                            240 * 2 - self.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
+                            180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                         )
                     )
             elif construction_pointer == 3:  # barriers (drawing barriers hovered over the board should be done here)
                 if mouse_coords is not None:
-                    if editing_barrier[0] == "delete":
+                    if editing_barrier[0] == Blocks.delete:
                         self.screen.blit(
-                            draw_block(
+                            self.level_data.draw_block(
                                 Block(
-                                    "delete",
+                                    Blocks.delete,
                                     []
                                 ),
-                                self.level_data.gravity[0],
                                 self.fonts[40],
                                 40
                             ),
                             (
-                                240 * 2 - self.level_data.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                                180 * 2 + self.level_data.dimensions[1] * 20 - mouse_coords[1] * 40
+                                240 * 2 - self.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
+                                180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                             )
                         )
                     else:
-                        block = deepcopy(self.level_data.blocks.get(mouse_coords, Block("", [])))
+                        block = deepcopy(self.level_data.level_on.blocks.get(mouse_coords, Block(Blocks.air, [])))
                         for i in reversed(range(0, len(block.barriers))):
                             if (block.barriers[i][0] == editing_barrier[0] and
                                     block.barriers[i][1] == editing_barrier[1]):
                                 block.barriers.pop(i)
                         block.barriers.append((editing_barrier[0], editing_barrier[1], tuple(editing_barrier[2])))
                         self.screen.blit(
-                            draw_block(
+                            self.level_data.draw_block(
                                 block,
-                                self.level_data.gravity[0],
                                 self.fonts[40],
                                 40
                             ),
                             (
-                                240 * 2 - self.level_data.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                                180 * 2 + self.level_data.dimensions[1] * 20 - mouse_coords[1] * 40
+                                240 * 2 - self.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
+                                180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                             )
                         )
             elif construction_pointer == 4:
                 if mouse_coords is not None:
                     if editing_link[0] == "Remove":
                         self.screen.blit(
-                            draw_block(
+                            self.level_data.draw_block(
                                 Block(
-                                    "delete",
+                                    Blocks.delete,
                                     []
                                 ),
-                                self.level_data.gravity[0],
                                 self.fonts[40],
                                 40
                             ),
                             (
-                                240 * 2 - self.level_data.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                                180 * 2 + self.level_data.dimensions[1] * 20 - mouse_coords[1] * 40
+                                240 * 2 - self.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
+                                180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                             )
                         )
                     elif editing_link[0] == "Place":
-                        block = deepcopy(self.level_data.blocks.get(mouse_coords, Block("", [])))
+                        block = deepcopy(self.level_data.level_on.blocks.get(mouse_coords, Block(Blocks.air, [])))
                         if isinstance(block.other, tuple):
                             block.other = dict()
                         block.other["link"] = editing_link[1]
                         self.screen.blit(
-                            draw_block(
+                            self.level_data.draw_block(
                                 block,
-                                self.level_data.gravity[0],
                                 self.fonts[40],
                                 40
                             ),
                             (
-                                240 * 2 - self.level_data.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                                180 * 2 + self.level_data.dimensions[1] * 20 - mouse_coords[1] * 40
+                                240 * 2 - self.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
+                                180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                             )
                         )
-        self.level_data.name = self.button_names[2]
+        self.level_data.level_on.name = self.button_names[2]
         save_current_editing()

@@ -2,7 +2,7 @@
 contains class for level data management.  Importing, exporting, saving, etc.
 """
 
-from level_data import Level
+from level_data import Level, LevelWrap
 from block_data import *
 from typing import Union
 from os.path import exists
@@ -18,7 +18,6 @@ def make_blank_level() -> Level:
     :return: constructed level
     """
     return Level(
-        False,
         "New Level",
         (0, -1.0),
         {},
@@ -96,19 +95,19 @@ def update_level(level_data: Level) -> None:
                 block.other.update(ADDED_DEFAULT_UPDATE_BLOCK_ATTRIBUTES[version][block.type])
 
 
-def save_level(level: Level) -> None:
+def save_level(level: LevelWrap) -> None:
     """
     saves a level to txt file
     :param level: level data
     :return: None
     """
     prepend = "custom_levels/"
-    name = f"{prepend}{level.name}.txt"
+    name = f"{prepend}{level.level_on.name}.txt"
     with open(name, "w", encoding="utf-8") as file:
-        file.write(encode_level_to_string(level))
+        file.write(encode_level_to_string(level.level_on))
 
 
-def max_info_number_length(data: dict[str, list[tuple]]) -> int:
+def max_info_number_length(data: dict[SavingFieldGroups, list[tuple]]) -> int:
     """
     finds length of the required
     :param data: block entry in SAVE_CODE
@@ -130,7 +129,7 @@ def max_info_number_length(data: dict[str, list[tuple]]) -> int:
     return length
 
 
-def decode_safety_wrap(level_string: str) -> Union[Level, None, ValueError, Exception]:
+def decode_safety_wrap(level_string: str) -> Union[LevelWrap, None, ValueError, Exception]:
     """
     decode level from string safety wrap.  If it errors, return None
     :param level_string: encoded level string
@@ -139,14 +138,14 @@ def decode_safety_wrap(level_string: str) -> Union[Level, None, ValueError, Exce
     # noinspection PyBroadException
     try:
         final_level = None
-        for line in reversed(level_string.split("\n")):
-            data = decode_level_from_string(line)
+        for line_ in reversed(level_string.split("\n")):
+            data = decode_level_from_string(line_)
             if isinstance(data, Exception):
                 return data
             update_level(data)
             data.next = final_level
             final_level = data
-        return final_level
+        return LevelWrap(final_level)
     except:
         traceback.print_exc()
         # print("Errored")
@@ -274,7 +273,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     )
             # print(level_name, block_data)
             return Level(
-                True,
                 level_name,
                 (gravity_angle, gravity_strength),
                 block_data,
@@ -399,7 +397,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     ))
                     i1 += 2
         return Level(
-            published,
             level_name,
             (gravity_angle, gravity_strength),
             blocks,
@@ -470,7 +467,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     else:
                         attributes[Gravity.type] = "set"
                         attributes[Gravity.mode] = buffer - 2
-                        attributes[Gravity.value] = letter_code.index(block_data[i2]) * 0.25
+                        attributes[Gravity.variable_value] = letter_code.index(block_data[i2]) * 0.25
             elif typ == "repel":
                 # print(len(block_data))
                 if len(block_data) == 1:
@@ -544,7 +541,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     i1 += 2
         # print(links)
         return Level(
-            published,
             level_name,
             (gravity_angle, gravity_strength),
             blocks,
@@ -560,7 +556,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         x = letter_code.index(level_string[i1])
         y = letter_code.index(level_string[i1 + 1])
         level = Level(
-            published,
             level_string[2:i1],
             (letter_code.index(level_string[i1 + 2]),
              letter_code.index(level_string[i1 + 3]) * -0.25),
@@ -681,12 +676,15 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
 
 
 # noinspection IncorrectFormatting
-def encode_level_to_string(level_data: Level) -> str:
+def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
     """
     encodes a level to a shareable string
-    :param level_data: level data object
+    :param level_data: level data object or level wrap
     :return: encoded string
     """
+
+    if isinstance(level_data, LevelWrap):
+        return encode_level_to_string(level_data.level_on)
 
     i = 0
     while i < len(level_data.links):

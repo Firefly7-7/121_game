@@ -17,10 +17,10 @@ from gtts import gTTS
 from io import BytesIO
 from multiprocessing.dummy import Pool
 from skin_management import draw_skin
-from render_level import draw_block
 from block_data import Block
 from platform import system
 from subprocess import Popen, call
+from level_data import LevelWrap
 
 
 # from pyperclip import paste
@@ -84,7 +84,7 @@ class Utility:
         self.level_display = None
         self.level_on = player_data.level_on
         self.levels = (player_data.level_list, [(c_lvl[:-4], False) for c_lvl in listdir("custom_levels")])
-        self.level_data = None
+        self.level_data: LevelWrap = None
         self.look_at = [min(len(self.levels[0]) - 1, self.level_on), 0]
         self.custom = 0
         self.after_game = None
@@ -1002,6 +1002,14 @@ class Utility:
         for con in self.controls:
             if con.name == name:
                 return con.value
+
+    def check_pressed(self, key: int) -> bool:
+        """
+        checks if a key is pressed using pygame key constant
+        :param key: what key
+        :return: is it pressed?
+        """
+        return self.pressed[key]
 
 
 def asynchronous_speak(text: str) -> None:

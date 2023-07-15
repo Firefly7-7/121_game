@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 from enum import Enum
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Type
 from pygame import SRCALPHA
 from pygame.surface import Surface
 from pygame.transform import smoothscale
@@ -14,6 +14,14 @@ from pygame.draw import line, lines, polygon, circle
 from render_help import cos, sin, draw_arrow, clean_decimal
 
 
+class BlockType(ABC):
+    """
+    stop yelling at me
+    """
+    pass
+
+
+# noinspection PyRedeclaration
 class BlockType(ABC):
     """
     abstract base class for blocks
@@ -69,6 +77,14 @@ class BlockType(ABC):
         rendering
         :return:
         """
+
+    @classmethod
+    def declare_required(cls) -> set[BlockType]:
+        """
+        declares block types required by this block in the level
+        :return: set of types required
+        """
+        return {cls}
 
 
 @dataclass()

@@ -93,3 +93,16 @@ def clean_decimal(num: float) -> Union[int, float]:
     if round(num) == num:
         return round(num)
     return num
+
+
+def degree_to_rgb(hue: int) -> tuple[int, int, int]:
+    """
+    converts d hue at 100 saturation and value to rgb values
+    :param hue: 0-360
+    :return: RGB tuple
+    """
+    return (
+        max(min(255, round(510 - 4.25 * hue)), 0, min(round(4.25 * hue - 1020), 255)),
+        max(min(round(4.25 * hue), 255, round(1020 - 4.25 * hue)), 0),
+        max(0, min(round(4.25 * hue - 510), 255, round(1530 - 4.25 * hue)))
+    )
