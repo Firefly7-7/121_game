@@ -30,7 +30,7 @@ class Level:
     dataclass containing completed level data
     """
     name: str
-    gravity: list[int, float]
+    gravity: tuple[int, float]
     blocks: dict[tuple[int, int], Block]
     links: list[list[tuple[int, int]]]
     player_starts: list[tuple[int, int]]
@@ -65,10 +65,10 @@ class LevelWrap:
         self.control_check: Optional[Callable] = None
         self.tick_track = 0
         self.time = 0
-        self.players = []
-        self.blocks = None
-        self.links = None
-        self.gravity = None
+        self.players: list[InGamePlayer] = []
+        self.blocks: Optional[dict[tuple[int, int], Block]] = None
+        self.links: Optional[list[list[tuple[int, int]]]] = None
+        self.gravity: Optional[tuple[int, float]] = None
 
     def next(self) -> bool:
         """
@@ -170,10 +170,9 @@ class LevelWrap:
         :return: tuple of coordinates, tuple of movement, set of block types collided with, dictionary for scheduled reactions, tuple of gravity info, if touched ground, and if it should stop movements
         """
         new_touched = self.get_collisions(colliding, local, self.gravity)
-        new_scheduled, stopped = self.execute_collisions(new_touched, player)
+        new_scheduled = self.execute_collisions(new_touched, player)
         scheduled_merge(self.time, player.scheduled, new_scheduled)
         player.block_record.update(set(new_touched))
-        return stopped
 
     def get_collisions(
             self,
@@ -255,10 +254,7 @@ class LevelWrap:
             self,
             new_touched: dict[str, list[Collision]],
             player: InGamePlayer
-    ) -> tuple[
-        set[str],
-        dict[tuple[int, int], tuple[int, float]]
-    ]:
+    ) -> dict[tuple[int, int], tuple[int, int]]:
         """
         runs collision reactions on blocks
         :param new_touched: list of coordinate tuples
@@ -267,374 +263,52 @@ class LevelWrap:
         """
         gravity = list(self.gravity)
         new_scheduled = dict()
-        stop = False
+        player.stop = False
+        player.corrected = False
         if Blocks.lava in new_touched:
-            self.alive = False
-            return new_scheduled, stop
+            Blocks.lava.collide(new_touched[Blocks.lava], self, player, gravity, new_scheduled)
+        if not self.alive or self.won:
+            return new_scheduled
         if Blocks.goal in new_touched:
-            if Blocks.coin in {self.blocks[block].type for block in self.blocks}:
-                self.text_output(
-                    "You must collect all coins before reaching the goal."
-                )
-            else:
-                self.won = True
-                return new_scheduled, stop
+            Blocks.goal.collide(new_touched[Blocks.goal], self, player, gravity, new_scheduled)
         if Blocks.achievement_goal in new_touched:
-            if Blocks.coin in {self.blocks[block].type for block in self.blocks}:
-                self.text_output(
-                    "You must collect all coins before reaching the goal."
-                )
-            else:
-                # if (self.after_game == "level_select" and self.custom == 0) or self.admin:
-                for check in new_touched[Blocks.achievement_goal]:
-                    self.achievements(
-                        self.blocks[check.coordinates[0:2]].other[Blocks.achievement_goal.achievement])
-                self.won = True
-                return new_scheduled, stop
-        corrected = False
+            Blocks.achievement_goal.collide(new_touched[Blocks.achievement_goal], self, player, gravity, new_scheduled)
+        if not self.alive or self.won:
+            return new_scheduled
         if Blocks.bouncy in new_touched:
-            stop = True
-            for check in new_touched[Blocks.bouncy]:
-                if check.direction == 0:
-                    player.mom[1] = max(0, player.mom[1] * -0.75)
-                elif check.direction == 1:
-                    player.mom[0] = min(player.mom[0] * -0.75, 0)
-                elif check.direction == 2:
-                    player.mom[1] = min(0, player.mom[1] * -0.75)
-                elif check.direction == 3:
-                    player.mom[0] = max(player.mom[0] * -0.75, 0)
-                if check.local:
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    corrected = True
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    break
-        if Blocks.ground in new_touched and not corrected:
-            for check in new_touched[Blocks.ground]:
-                if check.local:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = True
-                    break
-        if Blocks.fragile_ground in new_touched and not corrected:
-            impact_momentum = copy(player.mom)
-            for check in new_touched[Blocks.fragile_ground]:
-                if check.other[Blocks.fragile_ground.sturdiness] < abs(impact_momentum[(check.direction + 1) % 2]):
-                    block = self.blocks[check.coordinates]
-                    block.type = Blocks.air
-                    if check.other[Blocks.fragile_ground.remove_barriers]:
-                        block.barriers = []
-                    if check.other[Blocks.fragile_ground.remove_link]:
-                        if block.link is not None:
-                            self.links[block.link].remove(check.coordinates)
-                            block.link = None
-
-                if check.local:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = True
-        if Blocks.sticky in new_touched and not corrected:
-            for check in new_touched[Blocks.sticky]:
-                if check.local:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = True
-                    break
-        if Blocks.ice in new_touched and not corrected:
-            for check in new_touched[Blocks.ice]:
-                if check.local:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = True
-                    break
-        if Blocks.mud in new_touched and not corrected:
-            for check in new_touched[Blocks.mud]:
-                if check.local:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                    break
+            Blocks.bouncy.collide(new_touched[Blocks.bouncy], self, player, gravity, new_scheduled)
+        if Blocks.ground in new_touched:
+            Blocks.ground.collide(new_touched[Blocks.ground], self, player, gravity, new_scheduled)
+        if Blocks.fragile_ground in new_touched:
+            Blocks.fragile_ground.collide(new_touched[Blocks.fragile_ground], self, player, gravity, new_scheduled)
+        if Blocks.sticky in new_touched:
+            Blocks.sticky.collide(new_touched[Blocks.sticky], self, player, gravity, new_scheduled)
+        if Blocks.ice in new_touched:
+            Blocks.ice.collide(new_touched[Blocks.ice], self, player, gravity, new_scheduled)
+        if Blocks.mud in new_touched:
+            Blocks.mud.collide(new_touched[Blocks.mud], self, player, gravity, new_scheduled)
         if Blocks.jump in new_touched:
-            for check in new_touched[Blocks.jump][::-1]:
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                if (check.other[Blocks.jump.rotation] + self.gravity[0] * (
-                        1 - check.other[Blocks.jump.grav_locked])) % 2 == 0:
-                    if abs(player.mom[1]) < 16.25:
-                        player.mom[1] = 16.25 * cos(
-                            (check.other[Blocks.jump.rotation] - self.gravity[0] * (
-                                    1 - check.other[Blocks.jump.grav_locked])) % 4
-                        )
-                else:
-                    if abs(player.mom[0]) < 16.25:
-                        player.mom[0] = 16.25 * sin(
-                            (check.other[Blocks.jump.rotation] + self.gravity[0] * (
-                                    -1 + check.other[Blocks.jump.grav_locked])) % 4
-                        )
+            Blocks.jump.collide(new_touched[Blocks.jump], self, player, gravity, new_scheduled)
         if Blocks.repel in new_touched:
-            for check in new_touched[Blocks.repel]:
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                if isinstance(check.other, tuple) or check.other[Blocks.repel.mode] == 0:
-                    if check.direction % 2 == 0:
-                        player.mom[1] = -16.25 * (check.direction - 1)
-                    else:
-                        player.mom[0] = 16.25 * (check.direction - 2)
-                else:
-                    dx = player.pos[0] - check.coordinates[0] * 30 - 15
-                    dy = player.pos[1] - check.coordinates[1] * 30 - 15
-                    d = (dx ** 2 + dy ** 2) ** 0.5
-                    player.mom[0] = 16.25 * dx / d
-                    player.mom[1] = 16.25 * dy / d
+            Blocks.repel.collide(new_touched[Blocks.repel], self, player, gravity, new_scheduled)
         if Blocks.gravity in new_touched:
-            for check in new_touched[Blocks.gravity][::-1]:
-                activate = not check.local
-                if check.direction % 2 == 0 and abs(player.mom[1]) > 3:
-                    activate = True
-                elif check.direction % 2 == 1 and abs(player.mom[0]) > 3:
-                    activate = True
-                if activate:
-                    if check.other[Blocks.gravity.type] == "direction":
-                        gravity[0] = (3 * (check.other[Blocks.gravity.rotation] - (
-                                    1 - check.other[Blocks.gravity.grav_locked]) *
-                                           self.gravity[0]) + 2) % 4
-                    else:
-                        if check.other[Blocks.gravity.mode] == 0:
-                            gravity[1] = -1 * check.other[Blocks.gravity.variable_value]
-                        elif check.other[Blocks.gravity.mode] == 1:
-                            gravity[1] -= check.other[Blocks.gravity.variable_value]
-                            if gravity[1] < -2.5:
-                                gravity[1] = -2.5
-                        elif check.other[Blocks.gravity.mode] == 2:
-                            gravity[1] += check.other[Blocks.gravity.variable_value]
-                            if gravity[1] > 0:
-                                gravity[1] = 0
-                        elif check.other[Blocks.gravity.mode] == 3:
-                            gravity[1] *= check.other[Blocks.gravity.variable_value]
-                            if gravity[1] < -2.5:
-                                gravity[1] = -2.5
-                        elif check.other[Blocks.gravity.mode] == 4:
-                            if check.other[Blocks.gravity.variable_value] == 0:
-                                gravity[1] = -2.5
-                            else:
-                                gravity[1] /= check.other[Blocks.gravity.variable_value]
-                                if gravity[1] < -2.5:
-                                    gravity[1] = -2.5
-                        else:
-                            print(check.other[Blocks.gravity.mode])
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = True
+            Blocks.gravity.collide(new_touched[Blocks.gravity], self, player, gravity, new_scheduled)
         if Blocks.activator in new_touched:
-            for check in new_touched[Blocks.activator]:
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                look = 3 * (check.other[Blocks.activator.rotation] + (1 - check.other[Blocks.activator.grav_locked]) *
-                            self.gravity[0] + 2) % 4
-                coordinates = (
-                    check.coordinates[0] + sin(look),
-                    check.coordinates[1] - cos(look)
-                )
-                if coordinates not in new_scheduled:
-                    # print(check.coordinates, coordinates)
-                    new_scheduled[coordinates] = (look, check.other[Blocks.activator.delay])
+            Blocks.activator.collide(new_touched[Blocks.activator], self, player, gravity, new_scheduled)
         if Blocks.destroyer in new_touched:
-            for check in new_touched[Blocks.destroyer]:
-                activate = not check.local
-                if abs(player.mom[(check.direction + 1) % 2]) > 3:
-                    activate = True
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                if not activate:
-                    continue
-                look = 3 * (check.other[Blocks.destroyer.rotation] + (1 - check.other[Blocks.destroyer.grav_locked]) *
-                            self.gravity[0] + 2) % 4
-                coordinates = (
-                    check.coordinates[0] + sin(look),
-                    check.coordinates[1] - cos(look)
-                )
-                block = self.blocks.get(coordinates, None)
-                if block is None:
-                    continue
-                if not isinstance(check.other[Blocks.destroyer.match_block], bool):
-                    if check.other[Blocks.destroyer.match_block] is None:
-                        if block.type != Blocks.air:
-                            continue
-                    else:
-                        if block.type != check.other[Blocks.destroyer.match_block]:
-                            continue
-                if check.other[Blocks.destroyer.destroy_link]:
-                    if block.link is not None:
-                        self.links[block.link].remove(coordinates)
-                        block.link = None
-                match check.other[Blocks.destroyer.destroy_barriers]:
-                    case 1:
-                        block.barriers = []
-                    case 2:
-                        if isinstance(block.barriers, tuple):
-                            block.barriers = list(block.barriers)
-                        if block.barriers:
-                            del block.barriers[-1]
-                if check.other[Blocks.destroyer.destroy_block]:
-                    block.type = Blocks.air
+            Blocks.destroyer.collide(new_touched[Blocks.destroyer], self, player, gravity, new_scheduled)
         if Blocks.rotator in new_touched:
-            for check in new_touched[Blocks.rotator]:
-                activate = not check.local
-                if abs(player.mom[(check.direction + 1) % 2]) > 3:
-                    activate = True
-                if check.local and not corrected:
-                    stop = True
-                    position_correction(
-                        check.coordinates,
-                        check.direction,
-                        player
-                    )
-                    if self.gravity[0] == check.direction:
-                        player.grounded = True
-                    corrected = False
-                if activate:
-                    look = 3 * (check.other[Blocks.rotator.rotation] - (1 - check.other[Blocks.rotator.grav_locked]) *
-                                self.gravity[0] + 2) % 4
-                    coordinates = (
-                        check.coordinates[0] + sin(look),
-                        check.coordinates[1] - cos(look)
-                    )
-                    block = self.blocks.get(coordinates, None)
-                    if block is None:
-                        continue
-                    block_rotate = check.other[Blocks.rotator.variable_value]
-                    if check.other[Blocks.rotator.rotate_block] and Blocks.rotator.rotation in block.other:
-                        if not check.other[Blocks.rotator.mode]:  # if setting, not rotating
-                            if check.other[Blocks.rotator.grav_account] and not block.other.get(
-                                    Blocks.rotator.grav_locked, True):
-                                block_rotate = (check.other[Blocks.rotator.variable_value] - block.other[
-                                    Blocks.rotator.rotation] + gravity[0]) % 4
-                            else:
-                                block_rotate = (check.other[Blocks.rotator.variable_value] - block.other[
-                                    Blocks.rotator.rotation]) % 4
-                        # block.other["rotation"] = (check.other["mode"] * block.other["rotation"] + check.other["amount"]) % 4
-                        block.other[Blocks.rotator.rotation] = (block.other[Blocks.rotator.rotation] + block_rotate) % 4
-                    elif not check.other[Blocks.rotator.mode]:
-                        block_rotate = 0
-                    if check.other[Blocks.rotator.rotate_barriers]:
-                        for i in range(len(block.barriers)):
-                            block.barriers[i] = (
-                                block.barriers[i][0],
-                                block.barriers[i][1],
-                                block.barriers[i][2][4 - block_rotate:]
-                                + block.barriers[i][2][:4 - block_rotate]
-                            )
+            Blocks.rotator.collide(new_touched[Blocks.rotator], self, player, gravity, new_scheduled)
         if Blocks.coin in new_touched:
-            for check in new_touched[Blocks.coin]:
-                self.blocks[check.coordinates[0:2]].type = Blocks.air
+            Blocks.coin.collide(new_touched[Blocks.coin], self, player, gravity, new_scheduled)
         if Blocks.portal in new_touched:
-            portal = new_touched[Blocks.portal][0]
-            if portal.other[Blocks.portal.relative]:
-                player.pos[0] += portal.other[Blocks.portal.x] * 30
-                player.pos[1] += portal.other[Blocks.portal.y] * 30
-            else:
-                player.pos[0] = portal.other[Blocks.portal.x] * 30 + 15
-                player.pos[1] = portal.other[Blocks.portal.y] * 30 + 15
-            player_momentum = (
-                player.mom[0] * (1 - 2 * portal.other[Blocks.portal.reflect_x]),
-                player.mom[1] * (1 - 2 * portal.other[Blocks.portal.reflect_y])
-            )
-            player.mom[0], player.mom[1] = (
-                player.mom[0] * cos(portal.other[Blocks.portal.rotation]) + player_momentum[1] * sin(
-                    portal.other[Blocks.portal.rotation]),
-                player.mom[1] * cos(portal.other[Blocks.portal.rotation]) - player_momentum[0] * sin(
-                    portal.other[Blocks.portal.rotation])
-            )
-            stop = True
+            Blocks.portal.collide(new_touched[Blocks.portal], self, player, gravity, new_scheduled)
         if Blocks.easter_egg in new_touched:
-            for check in new_touched[Blocks.easter_egg]:
-                self.blocks[check.coordinates[0:2]].type = Blocks.air
-                match self.blocks[check.coordinates[0:2]].other[Blocks.easter_egg.type]:
-                    case "level":
-                        self.levels(self.blocks[check.coordinates[0:2]].other[Blocks.easter_egg.level])
-                    case "skin":
-                        self.skins(self.blocks[check.coordinates[0:2]].other[Blocks.easter_egg.skin])
-                    case "achievement":
-                        self.achievements(
-                            self.blocks[check.coordinates[0:2]].other[Blocks.easter_egg.achievement])
-                self.blocks[check.coordinates[0:2]].other = ()
+            Blocks.easter_egg.collide(new_touched[Blocks.easter_egg], self, player, gravity, new_scheduled)
         if Blocks.msg in new_touched:
-            self.text_output(new_touched[Blocks.msg][0].other[Blocks.msg.text])
+            Blocks.msg.collide(new_touched[Blocks.msg], self, player, gravity, new_scheduled)
         self.gravity = tuple(gravity)
-        return new_scheduled, stop
+        return new_scheduled
 
     def in_between_collision(
             self,
@@ -789,7 +463,7 @@ class LevelWrap:
             player.pos[0] += 30 * step
             remaining_xm -= 30 * step
             x = int(player.pos[0] + 10 * step) // 30
-            stop_movement = self.collision(
+            self.collision(
                 player,
                 [
                     (x, int((player.pos[1] + 10) // 30), 2 - step),
@@ -800,7 +474,7 @@ class LevelWrap:
             if not self.alive:
                 player.pos[0] += remaining_xm
                 return
-            if stop_movement:
+            if player.stop:
                 remaining_xm = 0
                 break
         player.pos[0] += remaining_xm
@@ -814,7 +488,7 @@ class LevelWrap:
             player.pos[1] += 30 * step
             remaining_ym -= 30 * step
             y = int(player.pos[1] + 10 * step) // 30
-            stop_movement = self.collision(
+            self.collision(
                 player,
                 [
                     (int((player.pos[0] + 10) // 30), y, 1 + step),
@@ -825,7 +499,7 @@ class LevelWrap:
             if not self.alive:
                 player.pos[1] += remaining_ym
                 return
-            if stop_movement:
+            if player.stop:
                 remaining_ym = 0
                 break
         player.pos[1] += remaining_ym

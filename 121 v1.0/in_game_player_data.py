@@ -18,8 +18,10 @@ class InGamePlayer:
         """
         create a player entity
         """
-        self.pos = pos
-        self.mom = [0, 0]
+        self.pos: list[int, float] = pos
+        self.mom: list[int, float] = [0, 0]
         self.block_record: set[BlockType] = set()
         self.scheduled: dict[tuple[int, int], tuple[int, int]] = dict()
         self.grounded: bool = False
+        self.stop: bool = False
+        self.corrected: bool = False
