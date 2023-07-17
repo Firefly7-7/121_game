@@ -111,6 +111,7 @@ class Block:
         ]
     ]
     other: dict[int, Any] = ()  # dictionary containing any extra tags the block needs
+    link: Optional[int] = None  # link number
 
 # can't let 2 attributes in enums have same value.
 

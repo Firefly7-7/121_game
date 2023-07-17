@@ -141,12 +141,13 @@ class LevelWrap:
                 if coordinates in self.blocks.keys():
                     if isinstance(self.blocks[coordinates].other, tuple):
                         self.blocks[coordinates].other = {}
-                    self.blocks[coordinates].other["link"] = i
+                    self.blocks[coordinates].link = i
                 else:
                     self.blocks[coordinates] = Block(
                         Blocks.air,
                         [],
-                        {"link": i}
+                        {},
+                        i
                     )
         self.players = [
             InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
@@ -206,7 +207,8 @@ class LevelWrap:
                 block[2],
                 local,
                 block[0:2],
-                col.other
+                col.other,
+                col.link
             )
             block_collision = True
             typ = col.type
@@ -223,8 +225,8 @@ class LevelWrap:
                 new_touched[typ] = []
             new_touched[typ].append(add)
             if block_collision:
-                if "link" in add.other:
-                    for link_block in self.links[add.other["link"]]:
+                if add.link is not None:
+                    for link_block in self.links[add.link]:
                         # checks if the block has already been collided with
                         if link_block in hit:
                             continue
@@ -333,9 +335,9 @@ class LevelWrap:
                     if check.other[Blocks.fragile_ground.remove_barriers]:
                         block.barriers = []
                     if check.other[Blocks.fragile_ground.remove_link]:
-                        if "link" in block.other:
-                            self.links[block.other["link"]].remove(check.coordinates)
-                            del block.other["link"]
+                        if block.link is not None:
+                            self.links[block.link].remove(check.coordinates)
+                            block.link = None
 
                 if check.local:
                     stop = True
@@ -535,9 +537,9 @@ class LevelWrap:
                         if block.type != check.other[Blocks.destroyer.match_block]:
                             continue
                 if check.other[Blocks.destroyer.destroy_link]:
-                    if "link" in block.other:
-                        self.links[block.other["link"]].remove(coordinates)
-                        del block.other["link"]
+                    if block.link is not None:
+                        self.links[block.link].remove(coordinates)
+                        block.link = None
                 match check.other[Blocks.destroyer.destroy_barriers]:
                     case 1:
                         block.barriers = []
@@ -987,9 +989,9 @@ class LevelWrap:
                         round(scale * 0.285)
                     )
         # links
-        if "link" in block.other:
+        if block.link is not None:
             circle(res, (0, 0, 0), (scale / 4, scale / 4), scale / 16 + 1)
-            circle(res, degree_to_rgb(block.other["link"] * 54), (scale / 4, scale / 4), scale / 16)
+            circle(res, degree_to_rgb(block.link * 54), (scale / 4, scale / 4), scale / 16)
         return res
 
 

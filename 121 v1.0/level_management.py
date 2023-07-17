@@ -19,43 +19,11 @@ def make_blank_level() -> Level:
     """
     return Level(
         "New Level",
-        (0, -1.0),
+        [0, -1.0],
         {},
         [],
         [(1, 1)],
     )
-
-
-def make_playable(
-        level: Level
-) -> tuple[
-    tuple[int, int],  # dimensions
-    tuple[int, float],  # gravity info
-    dict[tuple[int, int], Block],  # block info
-    list[list[tuple[int, int]]],  # link info
-    list[tuple[int, int]]  # player starts
-]:
-    """
-    from a level data, returns all data needed to play the level
-    :param level: level object containing data
-    :return: tuple of tuple of dimensions, gravity information, dictionary with block data, list of link data, list of player starts
-    """
-    blocks = deepcopy(level.blocks)
-    links = deepcopy(level.links)
-    for i, link_objects in enumerate(links):
-        for coordinates in link_objects:
-            if coordinates in blocks.keys():
-                if isinstance(blocks[coordinates].other, tuple):
-                    blocks[coordinates].other = {}
-                blocks[coordinates].other["link"] = i
-            else:
-                blocks[coordinates] = Block(
-                    Blocks.air,
-                    [],
-                    {"link": i}
-                )
-    players = [(x * 30 + 15, y * 30 + 15) for x, y in level.player_starts]
-    return level.dimensions, level.gravity, blocks, links, players
 
 
 def unpack_level(level_name: str, custom: int, easter_egg: bool = False) -> Union[Level, None, Exception]:
@@ -727,7 +695,7 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
         level_string += letter_code[player[0]] + letter_code[player[1]]  # saves indidual player starts
     block_saves = dict()
     for coordinates, block in level_data.blocks.items():  # loops through block items in block save, makes save code
-        if block.type == Blocks.air and block.barriers == [] and "link" not in block.other:
+        if block.type == Blocks.air and block.barriers == [] and block.link is None:
             continue
         specific_save = ""
         specific_save += letter_code[BLOCKS.index(block.type)]  # adds type indicator to specific save

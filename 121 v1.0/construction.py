@@ -1288,7 +1288,7 @@ class Construction(Utility):
                     )
                     for i in range(len(self.level_data.level_on.links)):
                         if mouse_coords in self.level_data.level_on.links[i]:
-                            drawn.other["link"] = i
+                            drawn.link = i
                             break
                     self.screen.blit(
                         self.level_data.draw_block(
@@ -1357,7 +1357,7 @@ class Construction(Utility):
                         block = deepcopy(self.level_data.level_on.blocks.get(mouse_coords, Block(Blocks.air, [])))
                         if isinstance(block.other, tuple):
                             block.other = dict()
-                        block.other["link"] = editing_link[1]
+                        block.link = editing_link[1]
                         self.screen.blit(
                             self.level_data.draw_block(
                                 block,

@@ -3,7 +3,7 @@ a module containing classes for various game structures
 button
 """
 from dataclasses import dataclass
-from typing import Union, Callable, Any
+from typing import Union, Callable, Any, Optional
 
 from pygame.font import Font, SysFont
 from pygame import Rect, Surface
@@ -315,6 +315,7 @@ class Collision:
     local: bool = False
     coordinates: tuple[int, int] = ()
     other: dict[int, Any] = ()
+    link: Optional[int] = None
 
 
 @dataclass()
