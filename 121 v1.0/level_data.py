@@ -912,6 +912,10 @@ class LevelWrap:
         return
 
     def tick(self):
+        """
+        ticks level data
+        :return:
+        """
         self.time = get_ticks()
         if self.alive:
             if self.tick_track == self.frame_skip:

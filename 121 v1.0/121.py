@@ -19,11 +19,16 @@ class Game(Start, Options, LevelSelect, EnterAndExit, Tutorial, Credits, Constru
     init in utility
     """
 
+    ran = False
+
     def main_game(self) -> None:
         """
         loop that handles travel between different locations
         :return: None
         """
+        if self.ran:
+            print("Don't do that?")
+        self.ran = True
         try:
             while self.running:
                 self.button_hover_keyed = -1

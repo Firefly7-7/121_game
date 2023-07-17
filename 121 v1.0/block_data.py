@@ -12,6 +12,10 @@ from pygame.transform import smoothscale
 from pygame.font import Font
 from pygame.draw import line, lines, polygon, circle
 from render_help import cos, sin, draw_arrow, clean_decimal
+from game_structures import Collision
+Wrap = IGP = None
+# from level_data import Wrap  # TODO this needs to be commented out for circular reasons
+# from in_game_player_data import IGP # TODO this needs to be commented out for circular reasons
 
 
 class BlockType(ABC):
@@ -62,8 +66,17 @@ class BlockType(ABC):
         pass
 
     @staticmethod
+    @property
     @abstractmethod
-    def collide() -> None:
+    def collide_priority() -> int:
+        """
+        collide priority field
+        :return:
+        """
+
+    @staticmethod
+    @abstractmethod
+    def collide(collision_list: list[Collision], level: Wrap, player: IGP) -> None:
         """
         colliding
         :return:
@@ -77,14 +90,6 @@ class BlockType(ABC):
         rendering
         :return:
         """
-
-    @classmethod
-    def declare_required(cls) -> set[BlockType]:
-        """
-        declares block types required by this block in the level
-        :return: set of types required
-        """
-        return {cls}
 
 
 @dataclass()
@@ -143,7 +148,7 @@ class Player(BlockType):
     """
     class for player (literally just has name, deprecated)
     """
-    name = "player"
+    name = "Player"
     description = None
     solid = False
 
@@ -162,12 +167,15 @@ class Delete(BlockType):
 
     description = "Delete a block."
     solid = False
-    name = "delete"
+    name = "Delete"
 
     @staticmethod
-    def collide() -> None:
+    def collide(collision_list: list[Collision], level: Wrap, player: IGP) -> None:
         """
         collides with delete block (... um, how did they manage to place one lol)
+        :param collision_list:
+        :param level:
+        :param player:
         :return:
         """
         pass
@@ -206,12 +214,19 @@ class Ground(BlockType):
     class for ground block
     """
 
-    name = "ground"
+    name = "Ground"
     description = "A solid block with no other properties."
     solid = True
 
     @staticmethod
-    def collide() -> None:
+    def collide(collision_list: list[Collision], level: Wrap, player: IGP) -> None:
+        """
+        collides with ground block (... um, how did they manage to place one lol)
+        :param collision_list:
+        :param level:
+        :param player:
+        :return:
+        """
         pass
 
     @staticmethod
@@ -225,7 +240,7 @@ class Goal(BlockType):
     """
     class for goal block
     """
-    name = "goal"
+    name = "Goal"
     description = "The block you need to finish a level.  You cannot export a level without being able to complete it."
     solid = False
 
@@ -240,7 +255,7 @@ class Lava(BlockType):
     """
     class for lava block
     """
-    name = "lava"
+    name = "Lava"
     description = "A block that kills you on touch."
     solid = False
 
@@ -255,7 +270,7 @@ class Ice(BlockType):
     """
     class for ice block
     """
-    name = "ice"
+    name = "Ice"
     description = "A block that reduces friction dramatically when touched."
     solid = True
 
@@ -270,7 +285,7 @@ class Mud(BlockType):
     """
     class for mud block
     """
-    name = "mud"
+    name = "Mud"
     description = "A block that slows acceleration and increases friction while touching."
     solid = True
 
@@ -285,7 +300,7 @@ class Sticky(BlockType):
     """
     class for sticky block
     """
-    name = "sticky"
+    name = "Sticky"
     description = "A block that keeps the player from jumping while touching."
     solid = True
 
@@ -300,7 +315,7 @@ class Bouncy(BlockType):
     """
     class for bouncy block
     """
-    name = "bouncy"
+    name = "Bouncy"
     description = "A block that bounces players off of it."
     solid = True
 
@@ -315,7 +330,7 @@ class Jump(PointedBlock, BlockType):
     """
     class for jump block
     """
-    name = "jump"
+    name = "Jump"
     description = "A block that propels the player in a certain direction indicated by the arrow."
     solid = True
 
@@ -336,7 +351,7 @@ class Gravity(PointedBlock, VariableValue, BlockType):
     """
     enum for gravity blocks
     """
-    name = "gravity"
+    name = "Gravity"
     description = "When activated, changes either gravity direction or strength."
     solid = True
     type = 2
@@ -373,7 +388,7 @@ class EasterEgg(GivesAchievement, BlockType):
     """
     enum for easter egg class
     """
-    name = "easter egg"
+    name = "Easter Egg"
     description = "Unlocks an otherwise inaccessible level, skin, or achievement."
     solid = True
     type = 5
@@ -398,7 +413,7 @@ class Repel(BlockType):
     """
     enum for repel block
     """
-    name = "repel"
+    name = "Repel"
     description = "A block that throws you either linearly or directly away."
     solid = True
     mode = 9
@@ -442,7 +457,7 @@ class Activator(BlockType, PointedBlock):
     """
     enum for activator block
     """
-    name = "activator"
+    name = "Activator"
     description = "A block that activates a block in the given direction after a given delay."
     solid = True
     delay = 10
@@ -500,7 +515,7 @@ class Portal(BlockType):
     """
     enum for portal block
     """
-    name = "portal"
+    name = "Portal"
     description = "A block that repositions the player.  Can also affect their momentum."
     solid = True
     rotation = PointedBlock.rotation
@@ -587,7 +602,7 @@ class FragileGround(BlockType):
     """
     enum for fragile ground
     """
-    name = "fragile ground"
+    name = "Fragile Ground"
     description = "This block acts like ground as long as the player is moving below a certain threshold. If the player colides with it above that speed, then it breaks."
     solid = True
     sturdiness = 17
@@ -606,7 +621,7 @@ class Destroyer(BlockType, PointedBlock):
     """
     enum for destroyer block
     """
-    name = "destroyer"
+    name = "Destroyer"
     description = "Destroys the block in a direction when activated."
     solid = True
     match_block = 20
@@ -655,7 +670,7 @@ class Rotator(BlockType, VariableValue, PointedBlock):
     """
     enum for rotator block
     """
-    name = "rotator"
+    name = "Rotator"
     description = "Rotates a block if it has a direction component and/or barriers on that block."
     solid = True
     mode = 24
@@ -705,7 +720,7 @@ class Coin(BlockType):
     """
     enum for coin block
     """
-    name = "coin"
+    name = "Coin"
     description = "In order to complete a level, all of these must be collected."
     solid = False
 
@@ -732,7 +747,7 @@ class Msg(BlockType, HasTextField):
     """
     enum for message block
     """
-    name = "msg"
+    name = "MSG"
     description = "Displays a message."
     solid = False
 
@@ -759,7 +774,7 @@ class AchievementGoal(GivesAchievement, Goal):
     """
     enum for achievement goal
     """
-    name = "achievement goal"
+    name = "Achievement Goal"
     description = "A goal block only available to admins.  Gives an achievement and finishes the level."
     solid = False
 
@@ -771,7 +786,7 @@ class Air(BlockType):
 
     description = None
     solid = False
-    name = "air"
+    name = "Air"
 
     @staticmethod
     def collide() -> None:

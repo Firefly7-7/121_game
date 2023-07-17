@@ -14,13 +14,17 @@ from os import listdir
 from sys import argv
 from constants import LEVEL_LIST, EASTER_EGG_LEVELS, BLOCK_LIST, DEFAULT_SKINS, BASE_ACHIEVEMENTS, ADMIN_BLOCKS
 from gtts import gTTS
+from aiogtts import aiogTTS
 from io import BytesIO
-from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool as Pool
 from skin_management import draw_skin
 from block_data import Block
 from platform import system
 from subprocess import Popen, call
 from level_data import LevelWrap
+from level_management import make_blank_level
+import asyncio
+from showinfm import show_in_file_manager
 
 
 # from pyperclip import paste
@@ -171,35 +175,42 @@ class Utility:
             lifespan=300
         )
 
-        # makes opening directories cross-platform
-        if system() == "Windows" or system() == "Darwin":
-            def open_directory(args: list[str]) -> None:
-                """
-                opens directory, windows version
-                :param args: parts of path
-                :return:
-                """
-                Popen(["explorer", "\\".join(args)])
-        elif system() == "MacOS":
-            def open_directory(args: list[str]) -> None:
-                """
-                opens directory, windows version
-                :param args: parts of path
-                :return:
-                """
-                call(["open", "\\".join(args)])
-        else:
-            def open_directory(args: list[str]) -> None:
-                """
-                tries to open using general attempt, but if errors puts out an alert
-                :param args:
-                :return:
-                """
-                try:
-                    Popen(["xdg-open", "\\".join(args)])
-                except:
-                    self.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
-        self.open_directory = open_directory
+        # # makes opening directories cross-platform
+        # if system() == "Windows" or system() == "Darwin":
+        #     def open_directory(args: list[str]) -> None:
+        #         """
+        #         opens directory, windows version
+        #         :param args: parts of path
+        #         :return:
+        #         """
+        #         Popen(["explorer", "\\".join(args)])
+        # elif system() == "MacOS":
+        #     def open_directory(args: list[str]) -> None:
+        #         """
+        #         opens directory, windows version
+        #         :param args: parts of path
+        #         :return:
+        #         """
+        #         call(["open", "\\".join(args)])
+        # else:
+        #     def open_directory(args: list[str]) -> None:
+        #         """
+        #         tries to open using general attempt, but if errors puts out an alert
+        #         :param args:
+        #         :return:
+        #         """
+        #         try:
+        #             Popen(["xdg-open", "\\".join(args)])
+        #         except:
+        #             self.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
+        # self.open_directory = open_directory
+
+    def open_directory(self, args: list[str]) -> None:
+        """
+        tries to open a directory
+        :return:
+        """
+        show_in_file_manager("\\".join(args))
 
     def start_typing(self, start_text: str = "", button_index: int = None) -> TypingData:
         """
@@ -237,8 +248,7 @@ class Utility:
         :return: none
         """
         if self.tts:
-            pool = Pool(1)
-            pool.apply_async(asynchronous_speak, [text])
+            asyncio.get_event_loop().run_until_complete(asynchronous_speak(text))
 
     def rewrite_button(
             self,
@@ -977,12 +987,11 @@ class Utility:
         if level_name in {lvl[0] for lvl in self.levels[0]}:
             self.alerts.add_alert(f"You have already collected easter egg level '{level_name}'.")
         else:
-            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", draw_block(
+            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", LevelWrap(make_empty_level()).draw_block(
                 Block(
                     "easter egg",
                     []
                 ),
-                0,
                 self.fonts[30],
                 60
             ))
@@ -1012,7 +1021,7 @@ class Utility:
         return self.pressed[key]
 
 
-def asynchronous_speak(text: str) -> None:
+async def asynchronous_speak(text: str) -> None:
     """
     asynchronous speak method using google text to speach
     :param text: text to read
@@ -1020,8 +1029,8 @@ def asynchronous_speak(text: str) -> None:
     """
     mp3_fp = BytesIO()
     try:
-        tts = gTTS(text)
-        tts.write_to_fp(mp3_fp)
+        tts = aiogTTS()
+        await tts.write_to_fp(text, mp3_fp)
     except:
         return
     mp3_fp.seek(0)
