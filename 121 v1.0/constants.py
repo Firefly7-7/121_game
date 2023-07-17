@@ -35,7 +35,7 @@ DEFAULT_SKINS: dict[str, Skin] = {
     "Lava": decode_skin("Lava,0,ff4d00,rect/-1+-1*41+41/4/1/000000"),
     "Mud": decode_skin("Mud,0,ab180a,rect/-1+-1*41+41/4/1/000000"),
     "Sticky": decode_skin("Sticky,0,cc2500,rect/-1+-1*41+41/4/1/000000"),
-    "Bouncy": decode_skin("Sticky,0,abcc4e,rect/-1+-1*41+41/4/1/000000"),
+    "Bouncy": decode_skin("Bouncy,0,abcc4e,rect/-1+-1*41+41/4/1/000000"),
     "Ice": decode_skin("Ice,0,abdbe3,rect/-1+-1*41+41/4/1/000000"),
     "Goal": decode_skin("Goal,0,32bf0a,rect/-1+-1*41+41/4/1/000000"),
     "Activator": decode_skin("Activator,0,cc2929,rect/-1+-1*41+41/4/1/000000_lines/19.5+10*19.5+30/6/0/000000_lines/10+25*19.5+30*29+25/6/0/000000"),
