@@ -4,7 +4,7 @@ data for blocks
 from dataclasses import dataclass
 from typing import Any
 from enum import Enum
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
 from typing import Optional, Type
 from pygame import SRCALPHA
 from pygame.surface import Surface
@@ -13,10 +13,27 @@ from pygame.font import Font
 from pygame.draw import line, lines, polygon, circle
 from render_help import cos, sin, draw_arrow, clean_decimal
 from game_structures import Collision
+from functools import total_ordering
+from typing import Type
 Wrap = IGP = None
 # from level_data import LevelWrap as Wrap  # TODO this needs to be commented out for circular reasons
 # from in_game_player_data import InGamePlayer as IGP # TODO this needs to be commented out for circular reasons
 
+
+def lt(self, other: Type) -> bool:
+    if not issubclass(other, BlockType):
+        raise ValueError("Trying to compare a subclass of BlockType to a non-subclass of BlockType")
+    if self.collide_priority < other.collide_priority:
+        return True
+    if self.collide_priority > other.collide_priority:
+        return False
+    if self.name < other.name:
+        return True
+    return False
+
+
+setattr(ABCMeta, '__lt__', lt)
+total_ordering(ABCMeta)
 
 class BlockType(ABC):
     """
@@ -24,13 +41,16 @@ class BlockType(ABC):
     """
     pass
 
-
+# @total_ordering
 # noinspection PyRedeclaration
 class BlockType(ABC):
     """
     abstract base class for blocks
     all blocks should inherit
     """
+
+    priority_list_index: Optional[int] = None
+    collide_priority = None
 
     # noinspection PyPropertyDefinition
     @staticmethod
@@ -65,14 +85,7 @@ class BlockType(ABC):
         """
         pass
 
-    @staticmethod
-    @property
-    @abstractmethod
-    def collide_priority() -> int:
-        """
-        collide priority field
-        :return:
-        """
+    collide_priority: float = -1
 
     @staticmethod
     @abstractmethod
@@ -359,6 +372,7 @@ class Ground(BasicSolid):
 
     name = "Ground"
     description = "A solid block with no other properties."
+    collide_priority = 2.01
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -374,6 +388,7 @@ class Goal(BlockType):
     name = "Goal"
     description = "The block you need to finish a level.  You cannot export a level without being able to complete it."
     solid = False
+    collide_priority = 1
 
     @staticmethod
     def collide(
@@ -413,6 +428,7 @@ class Lava(BlockType):
     name = "Lava"
     description = "A block that kills you on touch."
     solid = False
+    collide_priority = 0
 
     @staticmethod
     def collide(
@@ -446,6 +462,7 @@ class Ice(BasicSolid):
     """
     name = "Ice"
     description = "A block that reduces friction dramatically when touched."
+    collide_priority = 2.04
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -460,6 +477,7 @@ class Mud(BasicSolid):
     """
     name = "Mud"
     description = "A block that slows acceleration and increases friction while touching."
+    collide_priority = 2.05
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -474,6 +492,7 @@ class Sticky(BasicSolid):
     """
     name = "Sticky"
     description = "A block that keeps the player from jumping while touching."
+    collide_priority = 2.03
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -488,6 +507,7 @@ class Bouncy(AdvancedSolid):
     """
     name = "Bouncy"
     description = "A block that bounces players off of it."
+    collide_priority = 2.00
 
     @staticmethod
     def post_correction_collide(
@@ -535,6 +555,7 @@ class Jump(PointedBlock, AdvancedSolid):
     name = "Jump"
     description = "A block that propels the player in a certain direction indicated by the arrow."
     reverse = True
+    collide_priority = 2.06
 
     @staticmethod
     def post_correction_collide(
@@ -599,6 +620,7 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
     type = 2
     mode = 3
     reverse = True
+    collide_priority = 2.08
 
     @staticmethod
     def post_correction_collide(
@@ -689,6 +711,7 @@ class EasterEgg(GivesAchievement, BlockType):
     type = 5
     level = 6
     skin = 8
+    collide_priority = 2.14
 
     @staticmethod
     def collide(
@@ -740,6 +763,7 @@ class Repel(AdvancedSolid):
     name = "Repel"
     description = "A block that throws you either linearly or directly away."
     mode = 9
+    collide_priority = 2.07
 
     @staticmethod
     def post_correction_collide(
@@ -816,6 +840,7 @@ class Activator(AdvancedSolid, PointedBlock):
     description = "A block that activates a block in the given direction after a given delay."
     solid = True
     delay = 10
+    collide_priority = 2.09
 
     @staticmethod
     def post_correction_collide(
@@ -908,6 +933,7 @@ class Portal(BlockType):
     y = 14
     reflect_x = 15
     reflect_y = 16
+    collide_priority = 2.13
 
     @staticmethod
     def collide(
@@ -1024,10 +1050,10 @@ class FragileGround(AdvancedSolid):
     """
     name = "Fragile Ground"
     description = "This block acts like ground as long as the player is moving below a certain threshold. If the player colides with it above that speed, then it breaks."
-    solid = True
     sturdiness = 17
     remove_barriers = 18
     remove_link = 19
+    collide_priority = 2.02
 
     @staticmethod
     def post_correction_collide(
@@ -1077,6 +1103,7 @@ class Destroyer(AdvancedSolid, PointedBlock):
     destroy_link = 21
     destroy_barriers = 22
     destroy_block = 23
+    collide_priority = 2.10
 
     @staticmethod
     def post_correction_collide(
@@ -1178,6 +1205,7 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
     rotate_block = 25
     rotate_barriers = 26
     grav_account = 27
+    collide_priority = 2.11
 
     @staticmethod
     def post_correction_collide(
@@ -1207,7 +1235,7 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
                 check.coordinates[0] + sin(look),
                 check.coordinates[1] - cos(look)
             )
-            block = level.blocks.get(check.coordinates, None)
+            block = level.blocks.get(coordinates, None)
             if block is None:
                 return
             block_rotate = check.other[Rotator.variable_value]
@@ -1278,6 +1306,7 @@ class Coin(BlockType):
     name = "Coin"
     description = "In order to complete a level, all of these must be collected."
     solid = False
+    collide_priority = 2.12
 
     @staticmethod
     def collide(
@@ -1325,6 +1354,7 @@ class Msg(BlockType, HasTextField):
     name = "MSG"
     description = "Displays a message."
     solid = False
+    collide_priority = 2.15
 
     @staticmethod
     def collide(
@@ -1371,6 +1401,7 @@ class AchievementGoal(GivesAchievement, Goal):
     name = "Achievement Goal"
     description = "A goal block only available to admins.  Gives an achievement and finishes the level."
     solid = False
+    collide_priority = 1.1
 
     @staticmethod
     def collide(
@@ -1482,3 +1513,6 @@ def position_correction(
         case 3:
             player.pos[0] = block_coords[0] * 30 + 40.25
             player.mom[0] = max(0, player.mom[0])
+
+
+BlockType.__lt__(Lava, Ground)

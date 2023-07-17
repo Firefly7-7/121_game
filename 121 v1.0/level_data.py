@@ -4,7 +4,7 @@ level class
 from dataclasses import dataclass
 from block_data import Block, BlockType, Blocks
 from game_structures import Collision
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 from constants import BARRIER_COLORS
 from render_help import sin, cos, degree_to_rgb
 from pygame.time import get_ticks
@@ -15,6 +15,7 @@ from pygame.surface import Surface
 from math import floor
 from pygame.draw import line, circle
 from pygame.transform import smoothscale
+from sortedcontainers import SortedList
 
 
 @dataclass()
@@ -63,12 +64,13 @@ class LevelWrap:
         self.left: Optional[int] = None
         self.right: Optional[int] = None
         self.control_check: Optional[Callable] = None
-        self.tick_track = 0
-        self.time = 0
+        self.tick_track: int = 0
+        self.time: int = 0
         self.players: list[InGamePlayer] = []
         self.blocks: Optional[dict[tuple[int, int], Block]] = None
         self.links: Optional[list[list[tuple[int, int]]]] = None
         self.gravity: Optional[tuple[int, float]] = None
+        self.priority_list: Union[tuple[Union[BlockType, None]], None] = None
 
     def next(self) -> bool:
         """
@@ -133,6 +135,7 @@ class LevelWrap:
         prepares for play
         :return:
         """
+        # prepare board
         self.blocks = deepcopy(self.level_on.blocks)
         self.links = deepcopy(self.level_on.links)
         self.gravity = deepcopy(self.level_on.gravity)
@@ -149,11 +152,31 @@ class LevelWrap:
                         {},
                         i
                     )
+        # prepare players
         self.players = [
             InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
         ]
+        # prepare gamestate
         self.won = False
         self.alive = True
+        # prepare collision priority list
+        priority_list: SortedList[BlockType] = SortedList()
+        for block in self.blocks.values():
+            if block.type.collide_priority is not None:
+                if block.type not in priority_list:
+                    priority_list.add(block.type)
+            for bar in block.barriers:
+                if bar[0].collide_priority is not None:
+                    if bar[0] not in priority_list:
+                        priority_list.add(bar[0])
+        priority_list: list[Union[BlockType, None]] = list(priority_list)
+        i = 1
+        while i < len(priority_list):
+            if round(priority_list[i].collide_priority) != round(priority_list[i - 1].collide_priority):
+                priority_list.insert(i, None)
+                i += 1
+            i += 1
+        self.priority_list = tuple(priority_list)
 
     # noinspection PyTypeChecker
     def collision(
@@ -219,34 +242,32 @@ class LevelWrap:
                         block[0:2]
                     )
                     typ = bar[0]
-                    block_collision = False
             if typ not in new_touched:
                 new_touched[typ] = []
             new_touched[typ].append(add)
-            if block_collision:
-                if add.link is not None:
-                    for link_block in self.links[add.link]:
-                        # checks if the block has already been collided with
-                        if link_block in hit:
-                            continue
-                        # registers that the block has been hit
-                        hit.add(link_block)
-                        link_block_info = self.blocks[link_block]
-                        if link_block_info.type not in new_touched:
-                            new_touched[link_block_info.type] = []
-                            # print(link_block_info.type)
-                            # print(Collision(
-                            #     block[2],
-                            #     False,
-                            #     link_block,
-                            #     link_block_info.other
-                            # ))
-                        new_touched[link_block_info.type].append(Collision(
-                            block[2],
-                            False,
-                            link_block,
-                            link_block_info.other
-                        ))
+            if add.link is not None:
+                for link_block in self.links[add.link]:
+                    # checks if the block has already been collided with
+                    if link_block in hit:
+                        continue
+                    # registers that the block has been hit
+                    hit.add(link_block)
+                    link_block_info = self.blocks[link_block]
+                    if link_block_info.type not in new_touched:
+                        new_touched[link_block_info.type] = []
+                        # print(link_block_info.type)
+                        # print(Collision(
+                        #     block[2],
+                        #     False,
+                        #     link_block,
+                        #     link_block_info.other
+                        # ))
+                    new_touched[link_block_info.type].append(Collision(
+                        block[2],
+                        False,
+                        link_block,
+                        link_block_info.other
+                    ))
         return new_touched
 
     # noinspection PyTypeChecker
@@ -265,48 +286,54 @@ class LevelWrap:
         new_scheduled = dict()
         player.stop = False
         player.corrected = False
-        if Blocks.lava in new_touched:
-            Blocks.lava.collide(new_touched[Blocks.lava], self, player, gravity, new_scheduled)
-        if not self.alive or self.won:
-            return new_scheduled
-        if Blocks.goal in new_touched:
-            Blocks.goal.collide(new_touched[Blocks.goal], self, player, gravity, new_scheduled)
-        if Blocks.achievement_goal in new_touched:
-            Blocks.achievement_goal.collide(new_touched[Blocks.achievement_goal], self, player, gravity, new_scheduled)
-        if not self.alive or self.won:
-            return new_scheduled
-        if Blocks.bouncy in new_touched:
-            Blocks.bouncy.collide(new_touched[Blocks.bouncy], self, player, gravity, new_scheduled)
-        if Blocks.ground in new_touched:
-            Blocks.ground.collide(new_touched[Blocks.ground], self, player, gravity, new_scheduled)
-        if Blocks.fragile_ground in new_touched:
-            Blocks.fragile_ground.collide(new_touched[Blocks.fragile_ground], self, player, gravity, new_scheduled)
-        if Blocks.sticky in new_touched:
-            Blocks.sticky.collide(new_touched[Blocks.sticky], self, player, gravity, new_scheduled)
-        if Blocks.ice in new_touched:
-            Blocks.ice.collide(new_touched[Blocks.ice], self, player, gravity, new_scheduled)
-        if Blocks.mud in new_touched:
-            Blocks.mud.collide(new_touched[Blocks.mud], self, player, gravity, new_scheduled)
-        if Blocks.jump in new_touched:
-            Blocks.jump.collide(new_touched[Blocks.jump], self, player, gravity, new_scheduled)
-        if Blocks.repel in new_touched:
-            Blocks.repel.collide(new_touched[Blocks.repel], self, player, gravity, new_scheduled)
-        if Blocks.gravity in new_touched:
-            Blocks.gravity.collide(new_touched[Blocks.gravity], self, player, gravity, new_scheduled)
-        if Blocks.activator in new_touched:
-            Blocks.activator.collide(new_touched[Blocks.activator], self, player, gravity, new_scheduled)
-        if Blocks.destroyer in new_touched:
-            Blocks.destroyer.collide(new_touched[Blocks.destroyer], self, player, gravity, new_scheduled)
-        if Blocks.rotator in new_touched:
-            Blocks.rotator.collide(new_touched[Blocks.rotator], self, player, gravity, new_scheduled)
-        if Blocks.coin in new_touched:
-            Blocks.coin.collide(new_touched[Blocks.coin], self, player, gravity, new_scheduled)
-        if Blocks.portal in new_touched:
-            Blocks.portal.collide(new_touched[Blocks.portal], self, player, gravity, new_scheduled)
-        if Blocks.easter_egg in new_touched:
-            Blocks.easter_egg.collide(new_touched[Blocks.easter_egg], self, player, gravity, new_scheduled)
-        if Blocks.msg in new_touched:
-            Blocks.msg.collide(new_touched[Blocks.msg], self, player, gravity, new_scheduled)
+        for check in self.priority_list:
+            if check is None:
+                if not self.alive or self.won:
+                    return new_scheduled
+            if check in new_touched:
+                check.collide(new_touched[check], self, player, gravity, new_scheduled)
+        # if Blocks.lava in new_touched:
+        #     Blocks.lava.collide(new_touched[Blocks.lava], cls, player, gravity, new_scheduled)
+        # if not cls.alive or cls.won:
+        #     return new_scheduled
+        # if Blocks.goal in new_touched:
+        #     Blocks.goal.collide(new_touched[Blocks.goal], cls, player, gravity, new_scheduled)
+        # if Blocks.achievement_goal in new_touched:
+        #     Blocks.achievement_goal.collide(new_touched[Blocks.achievement_goal], cls, player, gravity, new_scheduled)
+        # if not cls.alive or cls.won:
+        #     return new_scheduled
+        # if Blocks.bouncy in new_touched:
+        #     Blocks.bouncy.collide(new_touched[Blocks.bouncy], cls, player, gravity, new_scheduled)
+        # if Blocks.ground in new_touched:
+        #     Blocks.ground.collide(new_touched[Blocks.ground], cls, player, gravity, new_scheduled)
+        # if Blocks.fragile_ground in new_touched:
+        #     Blocks.fragile_ground.collide(new_touched[Blocks.fragile_ground], cls, player, gravity, new_scheduled)
+        # if Blocks.sticky in new_touched:
+        #     Blocks.sticky.collide(new_touched[Blocks.sticky], cls, player, gravity, new_scheduled)
+        # if Blocks.ice in new_touched:
+        #     Blocks.ice.collide(new_touched[Blocks.ice], cls, player, gravity, new_scheduled)
+        # if Blocks.mud in new_touched:
+        #     Blocks.mud.collide(new_touched[Blocks.mud], cls, player, gravity, new_scheduled)
+        # if Blocks.jump in new_touched:
+        #     Blocks.jump.collide(new_touched[Blocks.jump], cls, player, gravity, new_scheduled)
+        # if Blocks.repel in new_touched:
+        #     Blocks.repel.collide(new_touched[Blocks.repel], cls, player, gravity, new_scheduled)
+        # if Blocks.gravity in new_touched:
+        #     Blocks.gravity.collide(new_touched[Blocks.gravity], cls, player, gravity, new_scheduled)
+        # if Blocks.activator in new_touched:
+        #     Blocks.activator.collide(new_touched[Blocks.activator], cls, player, gravity, new_scheduled)
+        # if Blocks.destroyer in new_touched:
+        #     Blocks.destroyer.collide(new_touched[Blocks.destroyer], cls, player, gravity, new_scheduled)
+        # if Blocks.rotator in new_touched:
+        #     Blocks.rotator.collide(new_touched[Blocks.rotator], cls, player, gravity, new_scheduled)
+        # if Blocks.coin in new_touched:
+        #     Blocks.coin.collide(new_touched[Blocks.coin], cls, player, gravity, new_scheduled)
+        # if Blocks.portal in new_touched:
+        #     Blocks.portal.collide(new_touched[Blocks.portal], cls, player, gravity, new_scheduled)
+        # if Blocks.easter_egg in new_touched:
+        #     Blocks.easter_egg.collide(new_touched[Blocks.easter_egg], cls, player, gravity, new_scheduled)
+        # if Blocks.msg in new_touched:
+        #     Blocks.msg.collide(new_touched[Blocks.msg], cls, player, gravity, new_scheduled)
         self.gravity = tuple(gravity)
         return new_scheduled
 
@@ -478,7 +505,7 @@ class LevelWrap:
                 remaining_xm = 0
                 break
         player.pos[0] += remaining_xm
-        # if not self.alive:
+        # if not cls.alive:
         #     return
         # ground = ground or new_ground
 
@@ -554,7 +581,7 @@ class LevelWrap:
         #             True,
         #         )
         # new_block_record.update(add_touched)
-        # if not self.alive:
+        # if not cls.alive:
         #     return (p_x, p_y), (p_xm, p_ym), new_block_record, add_reactions, ground
         # ground = ground or new_ground
         # scheduled_merge(time, scheduled, add_reactions)
@@ -602,7 +629,7 @@ class LevelWrap:
                 self.tick_track += 1
                 # noinspection PyTypeChecker
                 # print(in_between_player_data[i])
-                # self.in_between_physics()
+                # cls.in_between_physics()
 
     def render_level(self, scale: int, font: Font, player_imgs: tuple[Surface, Surface, Surface, Surface]):
         """

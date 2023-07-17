@@ -71,11 +71,11 @@ class QueueSpeech:
             self.back.next = new
         self.back = new
 
-        # print(self.front)
+        # print(cls.front)
         if self.front is None:
             # print(f"saying {text}")
             self.front = self.back
-            # print(self.front)
+            # print(cls.front)
             self.speak()
 
     def speak(self) -> None:

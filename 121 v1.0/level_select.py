@@ -232,7 +232,7 @@ class LevelSelect(Utility):
                 max_width=160,
                 arguments={"level": self.level_data}
             ))
-            # print(self.custom, self.look_at, self.level_on)
+            # print(cls.custom, cls.look_at, cls.level_on)
 
         # buttons order:
         # 0: back button [static] (done)
@@ -372,7 +372,7 @@ class LevelSelect(Utility):
             special_press="Back"
         ))  # 0
         self.add_button(None)  # 1 replaced with play
-        # self.add_button(None)
+        # cls.add_button(None)
         self.add_button(self.make_text_button(
             "Make Level",
             50,

@@ -356,7 +356,7 @@ class Construction(Utility):
             else:
                 player_grabbed = coords
                 # print(coords)
-                # print(self.level_data.player_starts)
+                # print(cls.level_data.player_starts)
                 player_grabbed = coords
                 self.level_data.level_on.player_starts.remove(coords)
                 update_game_image()

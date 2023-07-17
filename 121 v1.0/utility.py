@@ -202,8 +202,8 @@ class Utility:
         #         try:
         #             Popen(["xdg-open", "\\".join(args)])
         #         except:
-        #             self.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
-        # self.open_directory = open_directory
+        #             cls.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
+        # cls.open_directory = open_directory
 
     def open_directory(self, args: list[str]) -> None:
         """
@@ -214,7 +214,7 @@ class Utility:
 
     def start_typing(self, start_text: str = "", button_index: int = None) -> TypingData:
         """
-        begins typing, output in self.text
+        begins typing, output in cls.text
         :param start_text: what starting text is
         :param button_index: what button editing
         :return: typing instance
