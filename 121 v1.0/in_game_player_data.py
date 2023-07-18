@@ -4,6 +4,7 @@ handles data for in game player data
 
 
 from block_data import BlockType
+from copy import copy
 
 
 class InGamePlayer:
@@ -25,3 +26,20 @@ class InGamePlayer:
         self.grounded: bool = False
         self.stop: bool = False
         self.corrected: bool = False
+
+
+class InGamePlayerInBetween:
+    """
+    handles data in
+    """
+
+    def __init__(
+            self,
+            player: InGamePlayer
+    ):
+        """
+        generates pared down player for this
+        :param player:
+        """
+        self.pos = copy(player.pos)
+        self.mom = [player.mom[0] / 2, player.mom[1] / 2]

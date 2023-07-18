@@ -8,7 +8,7 @@ from typing import Union, Callable, Optional, Any
 from constants import BARRIER_COLORS
 from render_help import sin, cos, degree_to_rgb
 from pygame.time import get_ticks
-from in_game_player_data import InGamePlayer
+from in_game_player_data import InGamePlayer, InGamePlayerInBetween
 from copy import deepcopy, copy
 from pygame.font import Font
 from pygame.surface import Surface
@@ -71,6 +71,7 @@ class LevelWrap:
         self.links: Optional[list[list[tuple[int, int]]]] = None
         self.gravity: Optional[tuple[int, float]] = None
         self.priority_list: Union[tuple[Union[BlockType, None]], None] = None
+        self.in_between_track: list[InGamePlayerInBetween] = []
 
     def next(self) -> bool:
         """
@@ -232,7 +233,6 @@ class LevelWrap:
                 col.other,
                 col.link
             )
-            block_collision = True
             typ = col.type
             for bar in col.barriers:
                 if bar[2][3 * (block[2] - gravity[0] * bar[1]) % 4]:
@@ -340,17 +340,15 @@ class LevelWrap:
     def in_between_collision(
             self,
             blocks: list[tuple[int, int, int]],
-            player_pos: tuple[float, float],
-            player_momentum: tuple[float, float]
-    ) -> tuple[tuple[float, float], tuple[float, float]]:
+            player: InGamePlayer
+    ) -> None:
         """
         barebones collision to stop bleeding into other blocks
         :param blocks: list of coordinate tuples and direction
-        :param player_pos: player position
-        :param player_momentum: player momentum
-        :return: tuple of coordinates, tuple of movement
+        :param player:
+        :return: nada
         """
-        for block in self.blocks:
+        for block in blocks:
             col = self.blocks.get(block[0:2])
             if col is None:
                 continue
@@ -359,79 +357,70 @@ class LevelWrap:
                 if bar[2][3 * (block[2] - self.gravity[0] * bar[1]) % 4]:
                     typ = bar[0]
             if typ.solid:
-                return position_correction(block[0:2], block[2], player_pos, player_momentum)
-        return player_pos, player_momentum
+                position_correction(block[0:2], block[2], player)
+                return
 
     def in_between_physics(
             self,
-            player_pos: tuple[Union[int, float], Union[int, float]],
-            player_momentum: tuple[Union[int, float], Union[int, float]],
-    ) -> tuple[tuple[float, float], tuple[float, float]]:
+            player: InGamePlayer,
+    ) -> None:
         """
         does barebones physics for a single player entity
-        :param player_pos: position of the player (x, y)
-        :param player_momentum: momentum of the player (x, y)
+        :param player:
         :return: new player position, player momentum, new block record, new scheduled
         """
-        p_x, p_y = player_pos
-        p_xm, p_ym = player_momentum
-        if self.bounds + 30 > p_x + p_xm:
-            p_xm = 0
-            p_x = self.bounds + 30
-        elif p_x + p_xm > 11 * 30 - self.bounds + 30:
-            p_xm = 0
-            p_x = 11 * 30 - self.bounds + 30
-        if self.bounds + 30 > p_y + p_ym:
-            p_ym = 0
-            p_y = self.bounds + 30
-        elif p_y + p_ym > 11 * 30 - self.bounds + 30:
-            p_ym = 0
-            p_y = 11 * 30 - self.bounds + 30
-        p_x += p_xm
-        if p_xm > 0:
-            if (p_x + 10) // 30 != (p_x - p_xm + 10) // 30:
-                (p_x, p_y), (p_xm, p_ym) = self.in_between_collision(
+        if self.bounds + 30 > player.pos[0] + player.mom[0]:
+            player.mom[0] = 0
+            player.pos[0] = self.bounds + 30
+        elif player.pos[0] + player.mom[0] > 11 * 30 - self.bounds + 30:
+            player.mom[0] = 0
+            player.pos[0] = 11 * 30 - self.bounds + 30
+        if self.bounds + 30 > player.pos[1] + player.mom[1]:
+            player.mom[1] = 0
+            player.pos[1] = self.bounds + 30
+        elif player.pos[1] + player.mom[1] > 11 * 30 - self.bounds + 30:
+            player.mom[1] = 0
+            player.pos[1] = 11 * 30 - self.bounds + 30
+        player.pos[0] += player.mom[0]
+        if player.mom[0] > 0:
+            if (player.pos[0] + 10) // 30 != (player.pos[0] - player.mom[0] + 10) // 30:
+                self.in_between_collision(
                     [
-                        (int((p_x + 10) // 30), int((p_y + 10) // 30), 1),
-                        (int((p_x + 10) // 30), int((p_y - 10) // 30), 1)
+                        (int((player.pos[0] + 10) // 30), int((player.pos[1] + 10) // 30), 1),
+                        (int((player.pos[0] + 10) // 30), int((player.pos[1] - 10) // 30), 1)
                     ],
-                    (p_x, p_y),
-                    (p_xm, p_ym)
+                    player
                 )
         else:
-            if (p_x - 10) // 30 != (p_x - p_xm - 10) // 30:
-                (p_x, p_y), (p_xm, p_ym) = self.in_between_collision(
+            if (player.pos[0] - 10) // 30 != (player.pos[0] - player.mom[0] - 10) // 30:
+                self.in_between_collision(
                     [
-                        (int((p_x - 10) // 30), int((p_y + 10) // 30), 3),
-                        (int((p_x - 10) // 30), int((p_y - 10) // 30), 3)
+                        (int((player.pos[0] - 10) // 30), int((player.pos[1] + 10) // 30), 3),
+                        (int((player.pos[0] - 10) // 30), int((player.pos[1] - 10) // 30), 3)
                     ],
-                    (p_x, p_y),
-                    (p_xm, p_ym)
+                    player
                 )
         # y move
-        p_y += p_ym
+        player.pos[1] += player.mom[1]
         # y collisions
-        if p_ym > 0:
-            if (p_y + 10) // 30 != (p_y - p_ym + 10) // 30:
-                (p_x, p_y), (p_xm, p_ym) = self.in_between_collision(
+        if player.mom[1] > 0:
+            if (player.pos[1] + 10) // 30 != (player.pos[1] - player.mom[1] + 10) // 30:
+                self.in_between_collision(
                     [
-                        (int((p_x + 10) // 30), int((p_y + 10) // 30), 2),
-                        (int((p_x - 10) // 30), int((p_y + 10) // 30), 2)
+                        (int((player.pos[0] + 10) // 30), int((player.pos[1] + 10) // 30), 2),
+                        (int((player.pos[0] - 10) // 30), int((player.pos[1] + 10) // 30), 2)
                     ],
-                    (p_x, p_y),
-                    (p_xm, p_ym)
+                    player
                 )
         else:
-            if (p_y - 10) // 30 != (p_y - p_ym - 10) // 30:
-                (p_x, p_y), (p_xm, p_ym) = self.in_between_collision(
+            if (player.pos[1] - 10) // 30 != (player.pos[1] - player.mom[1] - 10) // 30:
+                self.in_between_collision(
                     [
-                        (int((p_x - 10) // 30), int((p_y - 10) // 30), 0),
-                        (int((p_x + 10) // 30), int((p_y - 10) // 30), 0)
+                        (int((player.pos[0] - 10) // 30), int((player.pos[1] - 10) // 30), 0),
+                        (int((player.pos[0] + 10) // 30), int((player.pos[1] - 10) // 30), 0)
                     ],
-                    (p_x, p_y),
-                    (p_xm, p_ym)
+                    player
                 )
-        return (p_x, p_y), (p_xm, p_ym)
 
     def do_physics(
             self,
@@ -480,7 +469,6 @@ class LevelWrap:
         # friction
         player.mom[self.gravity[0] % 2] *= friction
         # track of if collisions find ground
-        new_ground = False
         player.block_record = set()
         # x collisions
 
@@ -623,13 +611,14 @@ class LevelWrap:
         if self.alive:
             if self.tick_track == self.frame_skip:
                 self.tick_track = 0
+                self.in_between_track.clear()
                 for player in self.players:
                     self.do_physics(player)
+                    self.in_between_track.append(InGamePlayerInBetween(player))
             else:
                 self.tick_track += 1
-                # noinspection PyTypeChecker
-                # print(in_between_player_data[i])
-                # cls.in_between_physics()
+                for player in self.in_between_track:
+                    self.in_between_physics(player)
 
     def render_level(self, scale: int, font: Font, player_imgs: tuple[Surface, Surface, Surface, Surface]):
         """
@@ -653,14 +642,24 @@ class LevelWrap:
         for i in range(11 + 1):
             line(drawn, (0, 0, 0), (0, i * scale), (11 * scale, i * scale), floor(scale / 10))
         player = smoothscale(player_imgs[self.gravity[0]], (scale * 3 / 4, scale * 3 / 4))
-        for play in self.players:
-            drawn.blit(
-                player,
-                (
-                    (play.pos[0] - 30) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
-                    (360 - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
+        if self.tick_track == 0:
+            for play in self.players:
+                drawn.blit(
+                    player,
+                    (
+                        (play.pos[0] - 30) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
+                        (360 - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
+                    )
                 )
-            )
+        else:
+            for play in self.in_between_track:
+                drawn.blit(
+                    player,
+                    (
+                        (play.pos[0] - 30) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
+                        (360 - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
+                    )
+                )
         return drawn
 
     def draw_block(self, block: Block, font: Font, scale: int = 60) -> Surface:
