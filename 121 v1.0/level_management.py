@@ -419,13 +419,13 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                 typ = BLOCKS[letter_code.index(block_data[0])]
                 # print(block_data[0], letter_code.index(block_data[0]), typ)
             i2 = 0
-            if typ in ["gravity", "jump"]:
+            if typ in [Blocks.gravity, Blocks.jump]:
                 i2 += 1
-                if typ == "jump":
+                if typ is Blocks.jump:
                     attributes[PointedBlock.grav_locked] = letter_code.index(block_data[i2])
                     i2 += 1
                     attributes[PointedBlock.rotation] = (4 - letter_code.index(block_data[2])) % 4
-                elif typ == "gravity":
+                elif typ is Blocks.gravity:
                     buffer = letter_code.index(block_data[i2])
                     i2 += 1
                     if buffer < 2:
@@ -436,7 +436,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                         attributes[Gravity.type] = "set"
                         attributes[Gravity.mode] = buffer - 2
                         attributes[Gravity.variable_value] = letter_code.index(block_data[i2]) * 0.25
-            elif typ == "repel":
+            elif typ == Blocks.repel:
                 # print(len(block_data))
                 if len(block_data) == 1:
                     attributes[Repel.mode] = 1
@@ -446,19 +446,19 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     i2 += 1
                 else:
                     attributes[Repel.mode] = 1
-            elif typ == "activator":
+            elif typ == Blocks.activator:
                 attributes[Activator.delay] = letter_code.index(block_data[1]) / 4
                 attributes[Activator.grav_locked] = 1 - floor(letter_code.index(block_data[2]) / 4)
                 attributes[Activator.rotation] = (1 - letter_code.index(block_data[2])) % 4
                 i2 = 2
-            elif typ == "msg":
+            elif typ == Blocks.msg:
                 i2, length = decode_length_indicator(1, string=block_data)
                 attributes[HasTextField.text] = ""
                 for rep2 in range(length):
                     attributes[HasTextField.text] += block_data[i2]
                     i2 += 1
                 i2 -= 1
-            elif typ == "easter egg":
+            elif typ == Blocks.easter_egg:
                 i2, length = decode_length_indicator(2, string=block_data)
                 attributes[EasterEgg.type] = "level"
                 attributes[EasterEgg.level] = ""

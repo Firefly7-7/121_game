@@ -18,7 +18,7 @@ from aiogtts import aiogTTS
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 from skin_management import draw_skin
-from block_data import Block
+from block_data import Block, Blocks
 from platform import system
 from subprocess import Popen, call
 from level_data import LevelWrap
@@ -987,9 +987,9 @@ class Utility:
         if level_name in {lvl[0] for lvl in self.levels[0]}:
             self.alerts.add_alert(f"You have already collected easter egg level '{level_name}'.")
         else:
-            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", LevelWrap(make_empty_level()).draw_block(
+            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", LevelWrap(make_blank_level()).draw_block(
                 Block(
-                    "easter egg",
+                    Blocks.easter_egg,
                     []
                 ),
                 self.fonts[30],
@@ -1012,6 +1012,12 @@ class Utility:
             if con.name == name:
                 return con.value
 
+    def log_error(self) -> None:
+        """
+        logs an error.  Requires there to be an error.
+        :return:
+        """
+
     def check_pressed(self, key: int) -> bool:
         """
         checks if a key is pressed using pygame key constant
@@ -1031,8 +1037,8 @@ async def asynchronous_speak(text: str) -> None:
     try:
         tts = aiogTTS()
         await tts.write_to_fp(text, mp3_fp)
+        mp3_fp.seek(0)
+        pygame.mixer.music.load(mp3_fp, "mp3")
+        pygame.mixer.music.play()
     except:
         return
-    mp3_fp.seek(0)
-    pygame.mixer.music.load(mp3_fp, "mp3")
-    pygame.mixer.music.play()

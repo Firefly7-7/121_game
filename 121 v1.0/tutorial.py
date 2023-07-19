@@ -29,6 +29,7 @@ class Tutorial(InGame):
             self.place = "in_game"
             self.won = False
             self.level_data = decode_safety_wrap(level_string)
+            self.level_data.prepare_for_play()
             self.in_game_place(welcome_message, False)
 
         single_level(
