@@ -90,7 +90,6 @@ class BlockType(ABC):
     @staticmethod
     @abstractmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -98,7 +97,6 @@ class BlockType(ABC):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
@@ -176,9 +174,9 @@ class BasicSolid(BlockType, ABC):
 
     solid = True
 
-    @staticmethod
+    @classmethod
     def collide(
-            collision_list: list[Collision],
+            cls,
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -186,14 +184,13 @@ class BasicSolid(BlockType, ABC):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        for check in collision_list:
+        for check in player.collision_record[cls.priority_list_index]:
             if check.local:
                 player.stop = True
                 position_correction(
@@ -242,7 +239,6 @@ class AdvancedSolid(BlockType, ABC):
     @classmethod
     def collide(
             cls,
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -250,7 +246,6 @@ class AdvancedSolid(BlockType, ABC):
     ) -> None:
         """
         does basic collision requirements, then calls post-correction collision check
-        :param collision_list:
         :param level:
         :param player:
         :param gravity:
@@ -258,6 +253,7 @@ class AdvancedSolid(BlockType, ABC):
         :return:
         """
         pre_collision_momentum = tuple(player.mom)
+        collision_list = player.collision_record[cls.priority_list_index]
         if cls.reverse:
             collision_list = collision_list.__reversed__()
         for check in collision_list:
@@ -286,7 +282,6 @@ class Player(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -294,7 +289,6 @@ class Player(BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
@@ -319,7 +313,6 @@ class Delete(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -392,7 +385,6 @@ class Goal(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -400,7 +392,6 @@ class Goal(BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
@@ -432,7 +423,6 @@ class Lava(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -440,7 +430,6 @@ class Lava(BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
@@ -715,7 +704,6 @@ class EasterEgg(GivesAchievement, BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -723,14 +711,13 @@ class EasterEgg(GivesAchievement, BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        for check in collision_list:
+        for check in player.collision_record[priority_list_index]:
             level.blocks[check.coordinates[0:2]].type = Air
             match level.blocks[check.coordinates[0:2]].other[EasterEgg.type]:
                 case "level":
@@ -838,7 +825,6 @@ class Activator(AdvancedSolid, PointedBlock):
     """
     name = "Activator"
     description = "A block that activates a block in the given direction after a given delay."
-    solid = True
     delay = 10
     collide_priority = 2.09
 
@@ -937,7 +923,6 @@ class Portal(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -945,14 +930,13 @@ class Portal(BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        portal = collision_list[0]
+        portal = player.collision_record[Portal.priority_list_index][0]
         if portal.other[Portal.relative]:
             player.pos[0] += portal.other[Portal.x] * 30
             player.pos[1] += portal.other[Portal.y] * 30
@@ -1310,7 +1294,6 @@ class Coin(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -1318,14 +1301,13 @@ class Coin(BlockType):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        for check in collision_list:
+        for check in player.collision_record[Coin.priority_list_index]:
             level.blocks[check.coordinates[0:2]].type = Blocks.air
 
     @staticmethod
@@ -1358,7 +1340,6 @@ class Msg(BlockType, HasTextField):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -1366,14 +1347,13 @@ class Msg(BlockType, HasTextField):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        level.text_output(collision_list[0].other[Msg.text])
+        level.text_output(player.collision_record[Msg.priority_list_index][0].other[Msg.text])
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -1405,7 +1385,6 @@ class AchievementGoal(GivesAchievement, Goal):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -1413,7 +1392,6 @@ class AchievementGoal(GivesAchievement, Goal):
     ) -> None:
         """
         colliding
-        :param collision_list: list of collision objects to compute through
         :param level: level data to modify
         :param player: which player is doing the collision (modify its data)
         :param gravity: gravity data to manipulate
@@ -1425,7 +1403,7 @@ class AchievementGoal(GivesAchievement, Goal):
                 "You must collect all coins before reaching the goal."
             )
         else:
-            for check in collision_list:
+            for check in player.collision_record[AchievementGoal.priority_list_index]:
                 level.achievements(
                     level.blocks[check.coordinates[0:2]].other[Blocks.achievement_goal.achievement])
             level.won = True
@@ -1442,7 +1420,6 @@ class Air(BlockType):
 
     @staticmethod
     def collide(
-            collision_list: list[Collision],
             level: Wrap,
             player: IGP,
             gravity: list[int, float],

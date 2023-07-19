@@ -84,7 +84,7 @@ class LevelWrap:
         self.prepare_for_play()
         self.alive = False
         self.won = False
-        self.tick_track = 0
+        self.tick_track = 1
         self.time = 0
         return True
 
@@ -153,10 +153,6 @@ class LevelWrap:
                         {},
                         i
                     )
-        # prepare players
-        self.players = [
-            InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
-        ]
         # prepare gamestate
         self.won = False
         self.alive = True
@@ -171,6 +167,8 @@ class LevelWrap:
                     if bar[0] not in priority_list:
                         priority_list.add(bar[0])
         priority_list: list[Union[BlockType, None]] = list(priority_list)
+        for index in range(len(priority_list)):
+            priority_list[index].priority_list_index = index
         i = 1
         while i < len(priority_list):
             if round(priority_list[i].collide_priority) != round(priority_list[i - 1].collide_priority):
@@ -178,6 +176,14 @@ class LevelWrap:
                 i += 1
             i += 1
         self.priority_list = tuple(priority_list)
+        # prepare players
+        self.players = [
+            InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
+        ]
+        self.in_between_track.clear()
+        for player in self.players:
+            player.collision_record = tuple(list() for typ in self.priority_list)
+            self.in_between_track.append(InGamePlayerInBetween(player))
 
     # noinspection PyTypeChecker
     def collision(
@@ -193,30 +199,29 @@ class LevelWrap:
         :param local: if the player is local to the collisions (or link/activator)
         :return: tuple of coordinates, tuple of movement, set of block types collided with, dictionary for scheduled reactions, tuple of gravity info, if touched ground, and if it should stop movements
         """
-        new_touched = self.get_collisions(colliding, local, self.gravity)
-        new_scheduled = self.execute_collisions(new_touched, player)
+        self.get_collisions(colliding, local, self.gravity, player)
+        new_scheduled = self.execute_collisions(player)
         scheduled_merge(self.time, player.scheduled, new_scheduled)
-        player.block_record.update(set(new_touched))
 
     def get_collisions(
             self,
             blocks: list[tuple[int, int, int]],
             local: bool,
-            gravity: tuple[int, float]
-    ) -> dict[BlockType, list[Collision]]:
+            gravity: tuple[int, float],
+            player: InGamePlayer
+    ) -> None:
         """
         sets up a collision and gets list of blocks to collide, not hierarchied
         :param blocks: list of coordinate tuples then direction integer
         :param local: if it is the player hitting these blocks (is it from an activation or not)
         :param gravity: gravity info to use
+        :param player: player object that is doing the colliding
         :return: constructed new touched objects
         """
         # print(f"Collision called on {blocks}.")
         # print(block_info.keys())
         # keeps track of blocks previously reacted on to prevent double reactions
         hit = set()
-        # keeps track of types of blocks previously reacted on, and records collision objects
-        new_touched = dict()
         # if has touched the ground on this one
         for block in blocks:
             if block[0:2] in hit:
@@ -242,9 +247,7 @@ class LevelWrap:
                         block[0:2]
                     )
                     typ = bar[0]
-            if typ not in new_touched:
-                new_touched[typ] = []
-            new_touched[typ].append(add)
+            player.collision_record[typ.priority_list_index].append(add)
             if add.link is not None:
                 for link_block in self.links[add.link]:
                     # checks if the block has already been collided with
@@ -253,32 +256,20 @@ class LevelWrap:
                     # registers that the block has been hit
                     hit.add(link_block)
                     link_block_info = self.blocks[link_block]
-                    if link_block_info.type not in new_touched:
-                        new_touched[link_block_info.type] = []
-                        # print(link_block_info.type)
-                        # print(Collision(
-                        #     block[2],
-                        #     False,
-                        #     link_block,
-                        #     link_block_info.other
-                        # ))
-                    new_touched[link_block_info.type].append(Collision(
+                    player.collision_record[link_block_info.type.priority_list_index].append(Collision(
                         block[2],
                         False,
                         link_block,
                         link_block_info.other
                     ))
-        return new_touched
 
     # noinspection PyTypeChecker
     def execute_collisions(
             self,
-            new_touched: dict[str, list[Collision]],
             player: InGamePlayer
     ) -> dict[tuple[int, int], tuple[int, int]]:
         """
         runs collision reactions on blocks
-        :param new_touched: list of coordinate tuples
         :param player: player that's colliding
         :return: tuple of coordinates, tuple of movement, set of block types collided with, dictionary for scheduled reactions, tuple of gravity info, and if touched ground
         """
@@ -290,8 +281,10 @@ class LevelWrap:
             if check is None:
                 if not self.alive or self.won:
                     return new_scheduled
-            if check in new_touched:
-                check.collide(new_touched[check], self, player, gravity, new_scheduled)
+            elif player.collision_record[check.priority_list_index]:
+                player.block_record.add(check)
+                check.collide(self, player, gravity, new_scheduled)
+                player.collision_record[check.priority_list_index].clear()
         # if Blocks.lava in new_touched:
         #     Blocks.lava.collide(new_touched[Blocks.lava], cls, player, gravity, new_scheduled)
         # if not cls.alive or cls.won:
