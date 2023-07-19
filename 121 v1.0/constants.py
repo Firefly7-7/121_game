@@ -138,7 +138,7 @@ achievement_list = tuple(sorted(list(BASE_ACHIEVEMENTS.keys())))
 
 # for level saving.  DO NOT CHANGE ORDERING, only add to end
 # noinspection IncorrectFormatting
-BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.jump, Blocks.gravity, Blocks.easter_egg, Blocks.repel, Blocks.activator, Blocks.coin, Blocks.msg, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.air, Blocks.ice, Blocks.portal, Blocks.achievement_goal, Blocks.fragile_ground, Blocks.destroyer, Blocks.rotator)
+BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.jump, Blocks.gravity, Blocks.easter_egg, Blocks.repel, Blocks.activator, Blocks.coin, Blocks.msg, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.air, Blocks.ice, Blocks.portal, Blocks.achievement_goal, Blocks.fragile_ground, Blocks.destroyer, Blocks.rotator, Blocks.error_block)
 BARRIERS: tuple[BlockType, ...] = (Blocks.ground, Blocks.lava, Blocks.repel, Blocks.mud, Blocks.sticky, Blocks.air, Blocks.ice, Blocks.goal, Blocks.bouncy)
 
 # noinspection IncorrectFormatting
@@ -147,7 +147,7 @@ WORKING_BLOCK_LIST: list[[BlockType]] = [None, Blocks.ground, Blocks.goal, Block
 # for construction
 # noinspection IncorrectFormatting
 BLOCK_LIST: list[BlockType] = [Blocks.delete, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.rotator]
-ADMIN_BLOCKS: list[BlockType] = [Blocks.easter_egg, Blocks.achievement_goal]
+ADMIN_BLOCKS: list[BlockType] = [Blocks.easter_egg, Blocks.achievement_goal, Blocks.error_block]
 # dict of block type string to list of field tuples
 # entries into field list go as follows:
 # 0: name of field
@@ -254,7 +254,8 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
         (Blocks.rotator.variable_value, "Amount", FieldType.iterator, 0, {}, 0, 4, 1, ("No Effect/Up", "Clockwise/Right", "Reverse/Down", "Counterclockwise/Left")),
         (Blocks.rotator.rotate_block, "Rotate Block", FieldType.boolean, True, {}),
         (Blocks.rotator.rotate_barriers, "Rotate Barriers", FieldType.boolean, True, {}),
-    ]
+    ],
+    Blocks.error_block: []
 }
 
 

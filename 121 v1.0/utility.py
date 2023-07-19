@@ -25,7 +25,8 @@ from level_data import LevelWrap
 from level_management import make_blank_level
 import asyncio
 from showinfm import show_in_file_manager
-
+import logging
+import traceback
 
 # from pyperclip import paste
 
@@ -46,6 +47,7 @@ class Utility:
         self.button_hover_next_key = pygame.K_TAB
         self.button_hover_press_key = pygame.K_RETURN
 
+        print(argv[0][len(argv[0]) - 6:])
         if len(argv) == 2 and argv[1] == "admin":
             self.admin = True
             for block in ADMIN_BLOCKS:
@@ -204,6 +206,10 @@ class Utility:
         #         except:
         #             cls.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
         # cls.open_directory = open_directory
+
+        logging.basicConfig(filename="errors.log",
+                            format='%(asctime)s\n%(message)s',
+                            filemode='a')
 
     def open_directory(self, args: list[str]) -> None:
         """
@@ -1012,11 +1018,20 @@ class Utility:
             if con.name == name:
                 return con.value
 
-    def log_error(self) -> None:
+    def log_error(self, exc: Exception) -> None:
         """
         logs an error.  Requires there to be an error.
         :return:
         """
+        stack: traceback.StackSummary = traceback.extract_tb(exc.__traceback__)
+        if not self.admin:
+            root = argv[0][:len(argv[0]) - 6].replace("/", "\\")
+            for frame in stack:
+                if frame.filename.startswith(root):
+                    frame.filename = frame.filename[len(root):]
+                else:
+                    frame.filename = "<filename outside of program, obscured for privacy>"
+        logging.error("".join(traceback.format_list(stack)))
 
     def check_pressed(self, key: int) -> bool:
         """

@@ -60,6 +60,9 @@ class Game(Start, Options, LevelSelect, EnterAndExit, Tutorial, Credits, Constru
                     self.achievements_place()
                 else:
                     raise ValueError(f"Area '{self.place}' does not exist.")
+        except Exception as e:
+            self.log_error(e)
+            raise e
         finally:
             controls = dict()
             for control in self.controls:

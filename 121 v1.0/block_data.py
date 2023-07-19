@@ -50,7 +50,17 @@ class BlockType(ABC):
     """
 
     priority_list_index: Optional[int] = None
-    collide_priority = None
+
+    # noinspection PyPropertyDefinition
+    @staticmethod
+    @property
+    @abstractmethod
+    def collide_priority() -> float:
+        """
+        collide priority field
+        :return:
+        """
+        pass
 
     # noinspection PyPropertyDefinition
     @staticmethod
@@ -166,6 +176,27 @@ class HasTextField:
     """
     text = 11
 
+class NoCollision(BlockType, ABC):
+    """
+    class for blocks that have no collisions possible
+    """
+
+    collide_priority = None
+    solid = False
+
+    @staticmethod
+    def collide(level: Wrap, player: IGP, gravity: list[int, float],
+                new_scheduled: dict[tuple[int, int], tuple[int, int]]) -> None:
+        """
+        do nothing
+        :param level:
+        :param player:
+        :param gravity:
+        :param new_scheduled:
+        :return:
+        """
+        pass
+
 
 class BasicSolid(BlockType, ABC):
     """
@@ -272,62 +303,25 @@ class AdvancedSolid(BlockType, ABC):
 
 
 
-class Player(BlockType):
+class Player(NoCollision):
     """
     class for player (literally just has name, deprecated)
     """
     name = "Player"
     description = None
-    solid = False
-
-    @staticmethod
-    def collide(
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]]
-    ) -> None:
-        """
-        colliding
-        :param level: level data to modify
-        :param player: which player is doing the collision (modify its data)
-        :param gravity: gravity data to manipulate
-        :param new_scheduled: newly scheduled block updates
-        :return: nada
-        """
-        pass
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         pass
 
 
-class Delete(BlockType):
+class Delete(NoCollision):
     """
     class for delete in construction area
     """
 
     description = "Delete a block."
-    solid = False
     name = "Delete"
-
-    @staticmethod
-    def collide(
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]]
-    ) -> None:
-        """
-        colliding
-        :param collision_list: list of collision objects to compute through
-        :param level: level data to modify
-        :param player: which player is doing the collision (modify its data)
-        :param gravity: gravity data to manipulate
-        :param new_scheduled: newly scheduled block updates
-        :return: nada
-        """
-        pass
 
     @staticmethod
     def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -564,6 +558,8 @@ class Jump(PointedBlock, AdvancedSolid):
         :param gravity:
         :param new_scheduled:
         :param pre_collision_momentum:
+        :param activate:
+        :return:
         """
         if (check.other[Jump.rotation] + level.gravity[0] * (
                 1 - check.other[Jump.grav_locked])) % 2 == 0:
@@ -717,7 +713,7 @@ class EasterEgg(GivesAchievement, BlockType):
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        for check in player.collision_record[priority_list_index]:
+        for check in player.collision_record[EasterEgg.priority_list_index]:
             level.blocks[check.coordinates[0:2]].type = Air
             match level.blocks[check.coordinates[0:2]].other[EasterEgg.type]:
                 case "level":
@@ -1409,32 +1405,63 @@ class AchievementGoal(GivesAchievement, Goal):
             level.won = True
 
 
-class Air(BlockType):
+class Air(NoCollision):
     """
     air block (in other words, nothing)
     """
 
     description = None
-    solid = False
     name = "Air"
 
+
+class ErrorBlock(BlockType):
+    """
+    error block only for admin use.  Errors when colliding
+    """
+
+    name = "Error!"
+    description = "Errors when touched.  This is intended!"
+    solid = True
+    collide_priority = 0.1
+
     @staticmethod
-    def collide(
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]]
-    ) -> None:
+    def collide(level: Wrap, player: IGP, gravity: list[int, float],
+                new_scheduled: dict[tuple[int, int], tuple[int, int]]) -> None:
         """
-        it's air.  Do nothing
-        :param collision_list: list of collision objects to compute through
-        :param level: level data to modify
-        :param player: which player is doing the collision (modify its data)
-        :param gravity: gravity data to manipulate
-        :param new_scheduled: newly scheduled block updates
-        :return: nada
+        error
+        :param level:
+        :param player:
+        :param gravity:
+        :param new_scheduled:
+        :return:
         """
-        pass
+        raise Exception("Player collided with error block!  This is intended!")
+
+    @staticmethod
+    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+        """
+        draw
+        :param data:
+        :param gravity:
+        :param font:
+        :param scale:
+        :return:
+        """
+        res = Surface((scale, scale))
+        res.fill((255, 255, 255))
+        res.blit(
+            smoothscale(
+                font.render(
+                    "ER!",
+                    True,
+                    (128, 128, 128),
+                    None
+                    ),
+                (scale * 3 / 4, scale * 3 / 4)
+            ),
+            (scale / 8, scale / 8)
+        )
+        return res
 
 
 @dataclass()
@@ -1464,6 +1491,7 @@ class Blocks:
     easter_egg = EasterEgg
     achievement_goal = AchievementGoal
     air = Air
+    error_block = ErrorBlock
 
 def position_correction(
         block_coords: tuple[int, int],
