@@ -1,7 +1,7 @@
 # 121_game
 121 is a platformer game that takes place inside of an 11 by 11 grid.
 
-To install, simply download and run the '121_windows_setup.exe' or '121_mac_setup.dmg' file, based on OS.
+To install, go to 'releases' on the right and choose whichever you want (recommended most recent), and from there download and run the correct file for your OS.
 
 This project is under Creative Common's Attribution-ShareAlike 2.0 Generic license: https://creativecommons.org/licenses/by-sa/2.0/
 
