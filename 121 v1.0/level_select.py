@@ -11,7 +11,7 @@ from pygame.draw import lines
 from pygame.transform import rotate
 from block_data import Block
 from game_structures import Button
-from level_data import LevelWrap
+from level_data import LevelWrap, Level
 from block_data import EasterEgg
 
 
@@ -246,12 +246,13 @@ class LevelSelect(Utility):
             :return: none
             """
             if isinstance(self.level_data, LevelWrap):
-                while isinstance(self.level_data, LevelWrap):
-                    self.working_on.append(encode_level_to_string(self.level_data))
+                level_on = self.level_data.level_on
+                while isinstance(level_on, Level):
+                    self.working_on.append(encode_level_to_string(level_on))
                     self.alerts.add_alert(
-                        f"Imported level '{self.level_data.name}' from level select to level construction."
+                        f"Imported level '{level_on.name}' from level select to level construction."
                     )
-                    self.level_data = self.level_data.next
+                    level_on = level_on.next
                 self.constructing = len(self.working_on) - 1
                 self.place = "construction"
 
@@ -304,17 +305,22 @@ class LevelSelect(Utility):
             :return: none
             """
             level = decode_safety_wrap(paste())
-            if isinstance(level, Level):
+            if isinstance(level, LevelWrap):
                 name_append = ""
                 copies = 0
-                for lvl_index in range(len(self.levels[1])):
-                    if level.name + name_append == self.levels[1][lvl_index][0]:
-                        copies += 1
-                        name_append = "(" + str(copies) + ")"
-                level.name = level.name + name_append
+                unique_name = False
+                while not unique_name:
+                    unique_name = True
+                    for lvl_index in range(len(self.levels[1])):
+                        if level.level_on.name + name_append == self.levels[1][lvl_index][0]:
+                            copies += 1
+                            name_append = "(" + str(copies) + ")"
+                            unique_name = False
+                            break
+                level.level_on.name = level.level_on.name + name_append
                 save_level(level)
                 self.look_at[1] = len(self.levels[1])
-                self.levels[1].append((level.name, False))
+                self.levels[1].append((level.level_on.name, False))
                 self.custom = 1
                 get_level()
                 make_switch_button()
