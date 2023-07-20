@@ -31,6 +31,9 @@ import traceback
 # from pyperclip import paste
 
 
+tts_tasks: set[asyncio.Task] = set()
+
+
 class Utility:
     """
     utility superclass.  Also the initialization function
@@ -252,7 +255,9 @@ class Utility:
         :return: none
         """
         if self.tts:
-            asyncio.get_event_loop().run_until_complete(asynchronous_speak(text))
+            task = asyncio.ensure_future(asynchronous_speak(text))
+            tts_tasks.add(task)
+            task.add_done_callback(tts_tasks.discard)
 
     def rewrite_button(
             self,
