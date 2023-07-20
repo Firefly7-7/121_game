@@ -1,7 +1,7 @@
 """
 data for blocks
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from enum import Enum
 from abc import ABC, abstractmethod, ABCMeta
@@ -117,7 +117,7 @@ class BlockType(ABC):
 
     @staticmethod
     @abstractmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         """
         rendering
         :return:
@@ -151,39 +151,83 @@ class Block:
             ]
         ]
     ]
-    other: dict[int, Any] = ()  # dictionary containing any extra tags the block needs
+    other: list[Any] = field(default_factory=list)  # dictionary containing any extra tags the block needs
     link: Optional[int] = None  # link number
 
-# can't let 2 attributes in enums have same value.
+# can't let 2 attributes in same enum/class have same value.
 
 
-class GivesAchievement:
+class GivesAchievement(BlockType, ABC):
     """
     enum for any block that gives achievements
     """
-    achievement = 7
+    @staticmethod
+    @property
+    @abstractmethod
+    def achievement() -> int:
+        """
+        achievement field index
+        :return:
+        """
+        pass
 
 
-class PointedBlock:
+class PointedBlock(BlockType, ABC):
     """
     default attribute enum for pointing blocks
     """
-    grav_locked = 0
-    rotation = 1
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def grav_locked() -> int:
+        """
+        grav locked field index
+        :return:
+        """
+        pass
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def rotation() -> int:
+        """
+        rotation field index
+        :return:
+        """
+        pass
 
 
-class VariableValue:
+class VariableValue(BlockType, ABC):
     """
     enum for blocks with variable strength/amount values
     """
-    variable_value = 4
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def variable_value() -> int:
+        """
+        variable value field index
+        :return:
+        """
+        pass
 
 
-class HasTextField:
+class HasTextField(BlockType, ABC):
     """
     enum for any block with one freeform text field
     """
-    text = 11
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def text() -> int:
+        """
+        text field index
+        :return:
+        """
+        pass
 
 class NoCollision(BlockType, ABC):
     """
@@ -334,7 +378,7 @@ class Player(NoCollision):
     description = None
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         pass
 
 
@@ -347,7 +391,7 @@ class Delete(NoCollision):
     name = "Delete"
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         """
         renders delete block
         :param data:
@@ -385,7 +429,7 @@ class Ground(BasicSolid):
     collide_priority = 2.01
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         return res
 
@@ -423,7 +467,7 @@ class Goal(BlockType):
             level.won = True
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((50, 191, 0))
         return res
@@ -456,7 +500,7 @@ class Lava(BlockType):
         level.alive = False
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 77, 0))
         return res
@@ -471,7 +515,7 @@ class Ice(BasicSolid):
     collide_priority = 2.04
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((171, 219, 227))
         return res
@@ -486,7 +530,7 @@ class Mud(BasicSolid):
     collide_priority = 2.05
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((171, 24, 10))
         return res
@@ -501,7 +545,7 @@ class Sticky(BasicSolid):
     collide_priority = 2.03
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((204, 37, 0))
         return res
@@ -547,7 +591,7 @@ class Bouncy(AdvancedSolid):
                 player.mom[0] = max(pre_collision_momentum[0] * -0.75, 0)
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((171, 204, 78))
         return res
@@ -561,6 +605,8 @@ class Jump(PointedBlock, AdvancedSolid):
     name = "Jump"
     description = "A block that propels the player in a certain direction indicated by the arrow."
     reverse = True
+    rotation = 0
+    grav_locked = 1
     collide_priority = 2.06
 
     @staticmethod
@@ -599,7 +645,7 @@ class Jump(PointedBlock, AdvancedSolid):
                 )
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         """
 
         :param data:
@@ -612,8 +658,8 @@ class Jump(PointedBlock, AdvancedSolid):
         res.fill((128, 255, 0))
         draw_arrow(
             res,
-            (data[PointedBlock.rotation] - (1 - data[PointedBlock.grav_locked]) * gravity) % 4,
-            tuple(((1 - data[PointedBlock.grav_locked]) * 255,) * 3),
+            (data[Jump.rotation] - (1 - data[Jump.grav_locked]) * gravity) % 4,
+            tuple(((1 - data[Jump.grav_locked]) * 255,) * 3),
             scale
         )
         return res
@@ -625,8 +671,11 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
     """
     name = "Gravity"
     description = "When activated, changes either gravity direction or strength."
+    rotation = 0
+    grav_locked = 1
     type = 2
     mode = 3
+    variable_value = 4
     reverse = True
     collide_priority = 2.08
 
@@ -683,7 +732,7 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
 
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 0, 138))
         if data[Gravity.type] == "set":
@@ -709,16 +758,17 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
         return res
 
 
-class EasterEgg(GivesAchievement, BlockType):
+class EasterEgg(GivesAchievement):
     """
     enum for easter egg class
     """
     name = "Easter Egg"
     description = "Unlocks an otherwise inaccessible level, skin, or achievement."
     solid = False
-    type = 5
-    level = 6
-    skin = 8
+    type = 0
+    level = 1
+    skin = 2
+    achievement = 3
     collide_priority = 2.14
 
     @staticmethod
@@ -749,7 +799,7 @@ class EasterEgg(GivesAchievement, BlockType):
             level.blocks[check.coordinates[0:2]].other = {}
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 255, 255))
         lines(
@@ -768,7 +818,7 @@ class Repel(AdvancedSolid):
     """
     name = "Repel"
     description = "A block that throws you either linearly or directly away."
-    mode = 9
+    mode = 0
     collide_priority = 2.07
 
     @staticmethod
@@ -804,7 +854,7 @@ class Repel(AdvancedSolid):
             player.mom[1] = 16.25 * dy / d
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 184, 0))
         if data[Repel.mode] == 1:
@@ -844,7 +894,9 @@ class Activator(AdvancedSolid, PointedBlock):
     """
     name = "Activator"
     description = "A block that activates a block in the given direction after a given delay."
-    delay = 10
+    rotation = 0
+    grav_locked = 1
+    delay = 2
     collide_priority = 2.09
 
     @staticmethod
@@ -877,7 +929,7 @@ class Activator(AdvancedSolid, PointedBlock):
             new_scheduled[coordinates] = (look, check.other[Activator.delay])
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((204, 41, 41))
         draw_arrow(
@@ -925,19 +977,20 @@ class Activator(AdvancedSolid, PointedBlock):
         return res
 
 
-class Portal(BlockType):
+class Portal(PointedBlock):
     """
     enum for portal block
     """
     name = "Portal"
     description = "A block that repositions the player.  Can also affect their momentum."
     solid = True
-    rotation = PointedBlock.rotation
-    relative = 12
-    x = 13
-    y = 14
-    reflect_x = 15
-    reflect_y = 16
+    rotation = 0
+    grav_locked = None
+    relative = 1
+    x = 2
+    y = 3
+    reflect_x = 4
+    reflect_y = 5
     collide_priority = 2.13
 
     @staticmethod
@@ -975,7 +1028,7 @@ class Portal(BlockType):
         player.stop = True
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((0, 16, 97))
         lines(
@@ -1053,9 +1106,9 @@ class FragileGround(AdvancedSolid):
     """
     name = "Fragile Ground"
     description = "This block acts like ground as long as the player is moving below a certain threshold. If the player colides with it above that speed, then it breaks."
-    sturdiness = 17
-    remove_barriers = 18
-    remove_link = 19
+    sturdiness = 0
+    remove_barriers = 1
+    remove_link = 2
     collide_priority = 2.02
 
     @staticmethod
@@ -1089,7 +1142,7 @@ class FragileGround(AdvancedSolid):
                     block.link = None
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         color = 180 - 6 * data[FragileGround.sturdiness]
         res.fill((color, color, color))
@@ -1102,10 +1155,12 @@ class Destroyer(AdvancedSolid, PointedBlock):
     """
     name = "Destroyer"
     description = "Destroys the block in a direction when activated."
-    match_block = 20
-    destroy_link = 21
-    destroy_barriers = 22
-    destroy_block = 23
+    rotation = 0
+    grav_locked = 1
+    match_block = 2
+    destroy_link = 3
+    destroy_barriers = 4
+    destroy_block = 5
     collide_priority = 2.10
 
     @staticmethod
@@ -1162,7 +1217,7 @@ class Destroyer(AdvancedSolid, PointedBlock):
             block.type = Blocks.air
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((153, 0, 51))
         draw_arrow(
@@ -1204,10 +1259,13 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
     """
     name = "Rotator"
     description = "Rotates a block if it has a direction component and/or barriers on that block."
-    mode = 24
-    rotate_block = 25
-    rotate_barriers = 26
-    grav_account = 27
+    rotation = 0
+    grav_locked = 1
+    mode = 2
+    rotate_block = 3
+    rotate_barriers = 4
+    grav_account = 5
+    variable_value = 6
     collide_priority = 2.11
 
     @staticmethod
@@ -1242,17 +1300,16 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
             if block is None:
                 return
             block_rotate = check.other[Rotator.variable_value]
-            if check.other[Rotator.rotate_block] and Rotator.rotation in block.other:
+            if check.other[Rotator.rotate_block] and issubclass(block.type, PointedBlock):
                 if not check.other[Rotator.mode]:  # if setting, not rotating
-                    if check.other[Rotator.grav_account] and not block.other.get(
-                            Rotator.grav_locked, True):
+                    if check.other[Rotator.grav_account] and block.type.grav_locked is not None:  # check if you're accounting for gravity (and if the other block does too)
                         block_rotate = (check.other[Rotator.variable_value] - block.other[
-                            Rotator.rotation] + gravity[0]) % 4
+                            block.type.rotation] + gravity[0]) % 4
                     else:
                         block_rotate = (check.other[Rotator.variable_value] - block.other[
-                            Rotator.rotation]) % 4
+                            block.type.rotation]) % 4
                 # block.other["rotation"] = (check.other["mode"] * block.other["rotation"] + check.other["amount"]) % 4
-                block.other[Rotator.rotation] = (block.other[Rotator.rotation] + block_rotate) % 4
+                block.other[Rotator.rotation] = (block.other[block.type.rotation] + block_rotate) % 4
             elif not check.other[Rotator.mode]:
                 block_rotate = 0
             if check.other[Rotator.rotate_barriers]:
@@ -1265,7 +1322,7 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
                     )
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((83, 106, 90))
         draw_arrow(
@@ -1273,7 +1330,7 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
             (data[Rotator.rotation] - (1 - data[Rotator.grav_locked]) * gravity) % 4,
             tuple(((1 - data[Rotator.grav_locked]) * 255,) * 3),
             scale,
-            2 - data[Rotator.mode] + data.get(Rotator.grav_account, 0)
+            2 - data[Rotator.mode] + data[Rotator.grav_account]
         )
         circle(
             res,
@@ -1302,7 +1359,7 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
         return res
 
 
-class Coin(BlockType):
+class Coin(Destroys):
     """
     enum for coin block
     """
@@ -1330,7 +1387,7 @@ class Coin(BlockType):
             level.blocks[check.coordinates[0:2]].type = Blocks.air
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 255, 255))
         polygon(
@@ -1348,13 +1405,14 @@ class Coin(BlockType):
         return res
 
 
-class Msg(BlockType, HasTextField):
+class Msg(HasTextField):
     """
     enum for message block
     """
     name = "MSG"
     description = "Displays a message."
     solid = False
+    text = 0
     collide_priority = 2.15
 
     @staticmethod
@@ -1375,7 +1433,7 @@ class Msg(BlockType, HasTextField):
         level.text_output(player.collision_record[Msg.priority_list_index][0].other[Msg.text])
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         res = Surface((scale, scale))
         res.fill((255, 255, 255))
         res.blit(
@@ -1400,6 +1458,7 @@ class AchievementGoal(GivesAchievement, Goal):
     name = "Achievement Goal"
     description = "A goal block only available to admins.  Gives an achievement and finishes the level."
     solid = False
+    achievement = 0
     collide_priority = 1.1
 
     @staticmethod
@@ -1433,6 +1492,12 @@ class Air(NoCollision):
     air block (in other words, nothing)
     """
 
+    @staticmethod
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+        ret = Surface((scale, scale))
+        ret.fill((255, 255, 255))
+        return ret
+
     description = None
     name = "Air"
 
@@ -1461,7 +1526,7 @@ class ErrorBlock(BlockType):
         raise Exception("Player collided with error block!  This is intended!")
 
     @staticmethod
-    def render(data: dict[int, Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
         """
         draw
         :param data:

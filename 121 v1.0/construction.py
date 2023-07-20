@@ -383,9 +383,11 @@ class Construction(Utility):
         editing_block: BlockType = Blocks.delete
         editing_block_fields = dict()
         for block_name, field_list in BLOCK_CONSTRUCTION.items():
-            editing_block_fields[block_name] = {
-                field_name: default for field_name, display, field_type, default, *etc in field_list
-            }
+            editing_block_fields[block_name] = []
+            for field_index, display, field_type, default, *etc in field_list:
+                while len(editing_block_fields[block_name]) <= field_index:
+                    editing_block_fields[block_name].append(None)
+                editing_block_fields[block_name][field_index] = default
 
         total_width = 200
         per_line = 7

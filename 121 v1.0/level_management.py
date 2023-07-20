@@ -120,6 +120,19 @@ def decode_safety_wrap(level_string: str) -> Union[LevelWrap, None, ValueError, 
         return ValueError("Level string errored in decode.")
 
 
+def set_field(index: int, lst: list, val: Any) -> None:
+    """
+    sets a field and expands the list if index is out of range
+    :param index:
+    :param lst:
+    :param val:
+    :return:
+    """
+    while index >= len(lst):
+        lst.append(None)
+    lst[index] = val
+
+
 def decode_level_from_string(level_string: str, published: bool = True) -> Union[Level, TypeError, ValueError]:
     """
     decodes a level from a code string
@@ -160,10 +173,8 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         """
         b100 = 0
         for rep3 in range(len(string)):
-            if string[rep3] not in letter_code:
-                print(string[rep3], convert_constant, level_string.index(string[rep3]))
-                print(level_string)
-            b100 += (letter_code.index(string[rep3]) - convert_constant) * 100 ** rep3
+            if string[rep3] in letter_code:
+                b100 += (letter_code.index(string[rep3]) - convert_constant) * 100 ** rep3
         return b100
 
     letter_code = LETTER_CODES.get(level_string[0], "Whoops, what's going on here?")
@@ -204,36 +215,36 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     coord += letter_code.index(block[i4 - 1]) * 10 ** ((i4 - 1) * 2)
                 # i4 += 1
                 typ = BLOCKS[letter_code.index(block[i4])]
-                attributes = dict()
-                if typ == "player":
+                attributes = list()
+                if typ == Blocks.player:
                     players.append(((coord - 1) % x + 1, ceil(coord / x)))
                 else:
-                    if typ in ["gravity", "jump"]:
+                    if typ in [Blocks.gravity, Blocks.jump]:
                         i4 += 1
-                        if typ == "jump":
-                            attributes[PointedBlock.grav_locked] = letter_code.index(block[i4])
+                        if typ == Blocks.jump:
+                            set_field(Jump.grav_locked, attributes, letter_code.index(block[i4]))
                             i4 += 1
-                            attributes[PointedBlock.rotation] = (4 - letter_code.index(block[i4])) % 4
-                        elif typ == "gravity":
+                            set_field(Jump.rotation, attributes,(4 - letter_code.index(block[i4])) % 4)
+                        elif typ == Blocks.gravity:
                             buffer = letter_code.index(block[i4])
                             i4 += 1
                             if buffer < 2:
-                                attributes[Gravity.type] = "direction"
-                                attributes[Gravity.grav_locked] = buffer
+                                set_field(Gravity.type, attributes, "direction")
+                                set_field(Gravity.grav_locked, attributes, buffer)
                                 if i4 == len(block):
-                                    attributes[Gravity.rotation] = 3
+                                    set_field(Gravity.rotation, attributes, 3)
                                 else:
-                                    attributes[Gravity.rotation] = (2 - letter_code.index(block[i4])) % 4
+                                    set_field(Gravity.rotation, attributes, (2 - letter_code.index(block[i4])) % 4)
                             else:
-                                attributes[Gravity.type] = "set"
-                                attributes[Gravity.mode] = buffer - 2
+                                set_field(Gravity.type, attributes, "set")
+                                set_field(Gravity.mode, attributes, buffer - 2)
                                 if i4 == len(block):
-                                    attributes[Gravity.value] = 0
+                                    set_field(Gravity.variable_value, attributes, 0)
                                 else:
-                                    attributes[Gravity.value] = letter_code.index(block[i4]) * 0.25
-                    elif typ == "repel":
+                                    set_field(Gravity.variable_value, attributes, letter_code.index(block[i4]) * 0.25)
+                    elif typ == Blocks.repel:
                         i4 += 1
-                        attributes[Repel.mode] = letter_code.index(block[i4])
+                        set_field(Repel.mode, attributes, letter_code.index(block[i4]))
                     block_data[((coord - 1) % x + 1, ceil(coord / x))] = Block(
                         typ,
                         list(),
@@ -284,53 +295,53 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                 i1 += 1
             # begin specific load
             barriers = list()
-            attributes = dict()
+            attributes = list()
             if block_data[0] == letter_code[99]:
                 typ = Blocks.air
             else:
                 typ = BLOCKS[letter_code.index(block_data[0])]
             i2 = 0
-            if typ in ["gravity", "jump"]:
+            if typ in [Gravity, Jump]:
                 i2 += 1
-                if typ == "jump":
-                    attributes[PointedBlock.grav_locked] = letter_code.index(block_data[i2])
+                if typ == Jump:
+                    set_field(Jump.grav_locked, attributes, letter_code.index(block_data[i2]))
                     i2 += 1
-                    attributes[PointedBlock.rotation] = (4 - letter_code.index(block_data[i2])) % 4
-                elif typ == "gravity":
+                    set_field(Jump.rotation, attributes, (4 - letter_code.index(block_data[i2])) % 4)
+                elif typ == Gravity:
                     buffer = letter_code.index(block_data[i2])
                     i2 += 1
                     if buffer < 2:
-                        attributes[Gravity.type] = "direction"
-                        attributes[Gravity.grav_locked] = buffer
-                        attributes[Gravity.rotation] = (2 - letter_code.index(block_data[i2])) % 4
+                        set_field(Gravity.type, attributes, "direction")
+                        set_field(Gravity.grav_locked, attributes, buffer)
+                        set_field(Gravity.rotation, attributes, (2 - letter_code.index(block_data[i2])) % 4)
                     else:
-                        attributes[Gravity.type] = "set"
-                        attributes[Gravity.mode] = buffer - 2
-                        attributes[Gravity.value] = letter_code.index(block_data[i2]) * 0.25
-            elif typ == "repel":
+                        set_field(Gravity.type, attributes, "set")
+                        set_field(Gravity.mode, attributes, buffer - 2)
+                        set_field(Gravity.variable_value, attributes, letter_code.index(block_data[i2]) * 0.25)
+            elif typ == Repel:
                 if len(block_data) == 1:
-                    attributes[Repel.mode] = 1
+                    set_field(Repel.mode, attributes, 1)
                     i2 += 0
                 elif block_data[1] == letter_code[15]:
-                    attributes[Repel.mode] = 0
+                    set_field(Repel.mode, attributes, 0)
                     i2 += 1
                 else:
-                    attributes[Repel.mode] = 1
-            elif typ == "activator":
-                attributes[Activator.delay] = letter_code.index(block_data[1]) / 4
-                attributes[Activator.grav_locked] = 1 - floor(letter_code.index(block_data[2]) / 4)
-                attributes[Activator.rotation] = (letter_code.index(block_data[2]) - 1) % 4
+                    set_field(Repel.mode, attributes, 1)
+            elif typ == Activator:
+                set_field(Activator.delay, attributes, letter_code.index(block_data[1]) / 4)
+                set_field(Activator.grav_locked, attributes, 1 - floor(letter_code.index(block_data[2]) / 4))
+                set_field(Activator.rotation, attributes, (letter_code.index(block_data[2]) - 1) % 4)
                 i2 = 2
-            elif typ == "msg":
+            elif typ == Msg:
                 i2, length = decode_length_indicator(1, string=block_data)
-                attributes[HasTextField.text] = ""
+                set_field(Msg.text, attributes, "")
                 for rep2 in range(length):
-                    attributes[HasTextField.text] += block_data[i2]
+                    attributes[Msg.text] += block_data[i2]
                     i2 += 1
-            elif typ == "easter egg":
+            elif typ == EasterEgg:
                 i2, length = decode_length_indicator(2, string=block_data)
-                attributes[EasterEgg.type] = "level"
-                attributes[EasterEgg.level] = ""
+                set_field(EasterEgg.type, attributes, "level")
+                set_field(EasterEgg.level, attributes, "")
                 for rep2 in range(length):
                     attributes[EasterEgg.level] += block_data[i2]
                     i2 += 1
@@ -412,7 +423,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             # begin specific load
             # print(block_data)
             barriers = list()
-            attributes = dict()
+            attributes = list()
             if block_data[0] == letter_code[99]:
                 typ = Blocks.air
             else:
@@ -422,46 +433,46 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             if typ in [Blocks.gravity, Blocks.jump]:
                 i2 += 1
                 if typ is Blocks.jump:
-                    attributes[PointedBlock.grav_locked] = letter_code.index(block_data[i2])
+                    set_field(Gravity.grav_locked, attributes, letter_code.index(block_data[i2]))
                     i2 += 1
-                    attributes[PointedBlock.rotation] = (4 - letter_code.index(block_data[2])) % 4
+                    set_field(Gravity.rotation, attributes, (4 - letter_code.index(block_data[2])) % 4)
                 elif typ is Blocks.gravity:
                     buffer = letter_code.index(block_data[i2])
                     i2 += 1
                     if buffer < 2:
-                        attributes[Gravity.type] = "direction"
-                        attributes[Gravity.grav_locked] = buffer
-                        attributes[Gravity.rotation] = (2 - letter_code.index(block_data[2])) % 4
+                        set_field(Gravity.type, attributes, "direction")
+                        set_field(Gravity.grav_locked, attributes, buffer)
+                        set_field(Gravity.rotation, attributes, (2 - letter_code.index(block_data[2])) % 4)
                     else:
-                        attributes[Gravity.type] = "set"
-                        attributes[Gravity.mode] = buffer - 2
-                        attributes[Gravity.variable_value] = letter_code.index(block_data[i2]) * 0.25
+                        set_field(Gravity.type, attributes, "set")
+                        set_field(Gravity.mode, attributes, buffer - 2)
+                        set_field(Gravity.variable_value, attributes, letter_code.index(block_data[i2]) * 0.25)
             elif typ == Blocks.repel:
                 # print(len(block_data))
                 if len(block_data) == 1:
-                    attributes[Repel.mode] = 1
+                    set_field(Repel.mode, attributes, 1)
                     i2 += 0
                 elif block_data[1] == letter_code[15]:
-                    attributes[Repel.mode] = 0
+                    set_field(Repel.mode, attributes, 0)
                     i2 += 1
                 else:
-                    attributes[Repel.mode] = 1
+                    set_field(Repel.mode, attributes, 1)
             elif typ == Blocks.activator:
-                attributes[Activator.delay] = letter_code.index(block_data[1]) / 4
-                attributes[Activator.grav_locked] = 1 - floor(letter_code.index(block_data[2]) / 4)
-                attributes[Activator.rotation] = (1 - letter_code.index(block_data[2])) % 4
+                set_field(Activator.delay, attributes, letter_code.index(block_data[1]) / 4)
+                set_field(Activator.grav_locked, attributes, 1 - floor(letter_code.index(block_data[2]) / 4))
+                set_field(Activator.rotation, attributes, (1 - letter_code.index(block_data[2])) % 4)
                 i2 = 2
             elif typ == Blocks.msg:
                 i2, length = decode_length_indicator(1, string=block_data)
-                attributes[HasTextField.text] = ""
+                set_field(Msg.text, attributes, "")
                 for rep2 in range(length):
-                    attributes[HasTextField.text] += block_data[i2]
+                    attributes[Msg.text] += block_data[i2]
                     i2 += 1
                 i2 -= 1
             elif typ == Blocks.easter_egg:
                 i2, length = decode_length_indicator(2, string=block_data)
-                attributes[EasterEgg.type] = "level"
-                attributes[EasterEgg.level] = ""
+                set_field(EasterEgg.type, attributes, "level")
+                set_field(EasterEgg.level, attributes, "")
                 for rep2 in range(length):
                     attributes[EasterEgg.level] += block_data[i2]
                     i2 += 1
@@ -536,7 +547,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         # print(level.name, len(level_string), level.gravity)  # correct
         # print(x, y)  # correct
         players = letter_code.index(level_string[i1 + 4])
-        # print(players)  # correct
         i1 += 5
         for p in range(players):
             level.player_starts.append((letter_code.index(level_string[i1]), letter_code.index(level_string[i1 + 1])))
@@ -546,7 +556,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             block = Block(
                 BLOCKS[letter_code.index(level_string[i1 + 2])],
                 [],
-                {}
+                []
             )
             # print(block.type, letter_code.index(level_string[i1 + 2]), level_string[i1 + 2], i1 + 2)
             i1 += 3
@@ -593,17 +603,17 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     if SavingFieldGroups.string_to_number in save_code[block.type]:
                         for stn in save_code[block.type][SavingFieldGroups.string_to_number]:  # loops through string to number types
                             i4 += 1
-                            block.other[stn[0]] = stn[1][int(other_value // cumulative) % attributes[i4]]
+                            set_field(stn[0], block.other, stn[1][int(other_value // cumulative) % attributes[i4]])
                             cumulative *= attributes[i4]
                     if SavingFieldGroups.number in save_code[block.type]:
                         for n in save_code[block.type][SavingFieldGroups.number]:
                             i4 += 1
                             if len(n) == 5:
                                 if not n[3] or other_value // cumulative % attributes[i4] != attributes[i4] - 1:
-                                    block.other[n[0]] = (int(other_value // cumulative) % attributes[i4]) / n[4] + n[2]
+                                    set_field(n[0], block.other, (int(other_value // cumulative) % attributes[i4]) / n[4] + n[2])
                             else:
                                 if not n[3] or other_value // cumulative % attributes[i4] != attributes[i4] - 1:
-                                    block.other[n[0]] = (int(other_value // cumulative) % attributes[i4]) + n[2]
+                                    set_field(n[0], block.other, (int(other_value // cumulative) % attributes[i4]) + n[2])
                             cumulative *= attributes[i4]
                 if SavingFieldGroups.string in save_code[block.type]:
                     # print("retrieving string fields")
@@ -613,7 +623,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                             continue
                         i1 += 1
                         # print(i1, level_string[i1:i1 + 2], convert_from_b100(level_string[i1:i1 + 2]))
-                        block.other[s[0]] = level_string[i1 + 2: i1 + convert_from_b100(level_string[i1:i1 + 2]) + 2]
+                        set_field(s[0], block.other, level_string[i1 + 2: i1 + convert_from_b100(level_string[i1:i1 + 2]) + 2])
                         i1 += convert_from_b100(level_string[i1:i1 + 2])
                     i1 += 1
             i1 += 1
