@@ -673,29 +673,32 @@ class LevelWrap:
         :param scale: what size to use
         :return: drawn surface
         """
-        res = block.type.render(block.other, self.gravity[0], font, scale)
-        if res is None:
-            res = Surface((scale, scale))
-            res.fill((255, 255, 255))
-        # barriers
-        # if block.barriers:
-        #     print(block.barriers)
-        barrier_destination = ((scale, 0), (scale, scale), (0, scale), (0, 0))
-        for barrier_type, grav_lock, barriers in block.barriers:
-            for i in range(4):
-                if barriers[i]:
-                    line(
-                        res,
-                        BARRIER_COLORS[barrier_type][grav_lock],
-                        barrier_destination[i - 1 - grav_lock * self.gravity[0]],
-                        barrier_destination[i - grav_lock * self.gravity[0]],
-                        round(scale * 0.285)
-                    )
+        try:
+            res = block.type.render(block.other, self.gravity[0], font, scale)
+            if res is None:
+                res = Surface((scale, scale))
+                res.fill((255, 255, 255))
+            # barriers
+            # if block.barriers:
+            #     print(block.barriers)
+            barrier_destination = ((scale, 0), (scale, scale), (0, scale), (0, 0))
+            for barrier_type, grav_lock, barriers in block.barriers:
+                for i in range(4):
+                    if barriers[i]:
+                        line(
+                            res,
+                            BARRIER_COLORS[barrier_type][grav_lock],
+                            barrier_destination[i - 1 - grav_lock * self.gravity[0]],
+                            barrier_destination[i - grav_lock * self.gravity[0]],
+                            round(scale * 0.285)
+                        )
         # links
-        if block.link is not None:
-            circle(res, (0, 0, 0), (scale / 4, scale / 4), scale / 16 + 1)
-            circle(res, degree_to_rgb(block.link * 54), (scale / 4, scale / 4), scale / 16)
-        return res
+            if block.link is not None:
+                circle(res, (0, 0, 0), (scale / 4, scale / 4), scale / 16 + 1)
+                circle(res, degree_to_rgb(block.link * 54), (scale / 4, scale / 4), scale / 16)
+            return res
+        except:
+            return Blocks.error_block.render([], 0, font, scale)
 
 
 def position_correction(

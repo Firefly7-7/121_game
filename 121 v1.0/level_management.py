@@ -681,7 +681,7 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
         digit = 1
         string = ""
         while num >= digit:
-            string += letter_code[num // digit % 100]
+            string += letter_code[(num // digit) % 100]
             digit *= 100  # look, misnomer, k?  But means the same thing and made the first part easier
         if required_length is None:
             res = string
@@ -728,7 +728,7 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
                             times = n[4]
                         # noinspection PyUnresolvedReferences
                         mult = (n[1] - n[2]) * times + 1 + n[3]
-                        if n[0] in block.other:
+                        if len(block.other) > n[0] and block.other[n[0]] is not None:
                             attributes.append((mult, (block.other[n[0]] - n[2]) * times))
                         else:
                             attributes.append((mult, (mult - 1)))
