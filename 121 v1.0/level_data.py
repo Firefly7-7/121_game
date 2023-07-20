@@ -16,6 +16,7 @@ from math import floor
 from pygame.draw import line, circle
 from pygame.transform import smoothscale
 from sortedcontainers import SortedList
+from abc import ABCMeta
 
 
 @dataclass()
@@ -157,15 +158,22 @@ class LevelWrap:
         self.won = False
         self.alive = True
         # prepare collision priority list
+        for val in Blocks.__dict__.values():
+            if isinstance(val, ABCMeta):
+                val.priority_index = None
         priority_list: SortedList[BlockType] = SortedList()
         for block in self.blocks.values():
-            if block.type.collide_priority is not None:
-                if block.type not in priority_list:
-                    priority_list.add(block.type)
+            adding = block.type.declare_required()
+            for add in adding:
+                if add.collide_priority is not None:
+                    if add not in priority_list:
+                        priority_list.add(add)
             for bar in block.barriers:
-                if bar[0].collide_priority is not None:
-                    if bar[0] not in priority_list:
-                        priority_list.add(bar[0])
+                adding = bar[0].declare_required()
+                for add in adding:
+                    if add.collide_priority is not None:
+                        if add not in priority_list:
+                            priority_list.add(add)
         priority_list: list[Union[BlockType, None]] = list(priority_list)
         for index in range(len(priority_list)):
             priority_list[index].priority_list_index = index
@@ -247,7 +255,8 @@ class LevelWrap:
                         block[0:2]
                     )
                     typ = bar[0]
-            player.collision_record[typ.priority_list_index].append(add)
+            if typ.priority_list_index is not None:
+                player.collision_record[typ.priority_list_index].append(add)
             if add.link is not None:
                 for link_block in self.links[add.link]:
                     # checks if the block has already been collided with
@@ -256,12 +265,13 @@ class LevelWrap:
                     # registers that the block has been hit
                     hit.add(link_block)
                     link_block_info = self.blocks[link_block]
-                    player.collision_record[link_block_info.type.priority_list_index].append(Collision(
-                        block[2],
-                        False,
-                        link_block,
-                        link_block_info.other
-                    ))
+                    if link_block_info.type.priority_list_index is not None:
+                        player.collision_record[link_block_info.type.priority_list_index].append(Collision(
+                            block[2],
+                            False,
+                            link_block,
+                            link_block_info.other
+                        ))
 
     # noinspection PyTypeChecker
     def execute_collisions(

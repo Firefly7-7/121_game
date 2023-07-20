@@ -124,6 +124,15 @@ class BlockType(ABC):
         """
 
 
+    @classmethod
+    def declare_required(cls) -> set[BlockType]:
+        """
+        gives a set of required blocks to load data for for this block to work
+        :return:
+        """
+        return {cls}
+
+
 @dataclass()
 class Block:
     """
@@ -301,6 +310,20 @@ class AdvancedSolid(BlockType, ABC):
                 player.corrected = False
             cls.post_correction_collide(check, level, player, gravity, new_scheduled, pre_collision_momentum, activate)
 
+
+
+class Destroys(BlockType, ABC):
+    """
+    class for any block that destroys a block and replaces with air
+    """
+
+    @classmethod
+    def declare_required(cls) -> set[BlockType]:
+        """
+        declare that it needs this and air
+        :return:
+        """
+        return {cls, Air}
 
 
 class Player(NoCollision):
@@ -1518,6 +1541,3 @@ def position_correction(
         case 3:
             player.pos[0] = block_coords[0] * 30 + 40.25
             player.mom[0] = max(0, player.mom[0])
-
-
-BlockType.__lt__(Lava, Ground)

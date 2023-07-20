@@ -47,7 +47,6 @@ class Utility:
         self.button_hover_next_key = pygame.K_TAB
         self.button_hover_press_key = pygame.K_RETURN
 
-        print(argv[0][len(argv[0]) - 6:])
         if len(argv) == 2 and argv[1] == "admin":
             self.admin = True
             for block in ADMIN_BLOCKS:
@@ -68,7 +67,6 @@ class Utility:
         i = 0
         for lvl in LEVEL_LIST:
             if lvl not in existing_lvls:
-                print(lvl)
                 continue
             if lvl not in player_levels:
                 player_data.level_list.insert(i, (lvl, False))  # lvl name, completed
@@ -993,7 +991,9 @@ class Utility:
         if level_name in {lvl[0] for lvl in self.levels[0]}:
             self.alerts.add_alert(f"You have already collected easter egg level '{level_name}'.")
         else:
-            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", LevelWrap(make_blank_level()).draw_block(
+            dummylevel = LevelWrap(make_blank_level())
+            dummylevel.prepare_for_play()
+            self.alerts.add_alert(f"Easter egg level '{level_name}' unlocked!", dummylevel.draw_block(
                 Block(
                     Blocks.easter_egg,
                     []
@@ -1031,7 +1031,7 @@ class Utility:
                     frame.filename = frame.filename[len(root):]
                 else:
                     frame.filename = "<filename outside of program, obscured for privacy>"
-        logging.error("".join(traceback.format_list(stack)))
+        logging.error("".join(traceback.format_exception(exc)))
 
     def check_pressed(self, key: int) -> bool:
         """
