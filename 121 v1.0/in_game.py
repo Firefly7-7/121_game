@@ -12,24 +12,8 @@ class InGame(Utility):
     class that handles the in game areas
     """
 
-    def in_game_place(self, start_message: str = "", include_back: bool = True) -> None:
-        """
-        wraps in game with an error handler
-        :param start_message:
-        :param include_back:
-        :return:
-        """
-        try:
-            self.error_wrapped_in_game_place(start_message, include_back)
-        except Exception as e:
-            self.log_error(e)
-            self.alerts.add_alert("An error occurred in game!  Check the log file for more info.")
-            self.change_place("exit_level")
-            if self.after_game == "export":
-                self.after_game = "construction"
-
     # noinspection PyAttributeOutsideInit
-    def error_wrapped_in_game_place(self, start_message: str = "", include_back: bool = True) -> None:
+    def in_game_place(self, start_message: str = "", include_back: bool = True) -> None:
         """
         runs the game
         :param start_message: message displaying at start of level

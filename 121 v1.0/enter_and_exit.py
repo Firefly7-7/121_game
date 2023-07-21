@@ -36,6 +36,8 @@ class EnterAndExit(Utility):
         scale = 60
         if self.after_game is None:
             self.after_game = "start"
+        elif self.after_game == "export":
+            self.after_game = "construction"
         while self.place == "exit_level" and scale > 40:
             self.tick()
             scale -= 0.5

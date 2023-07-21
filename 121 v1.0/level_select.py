@@ -240,6 +240,7 @@ class LevelSelect(Utility):
         # 2: make level [static] (done)
         # 3: edit level [unstatic] (done)
 
+        @self.add_error_checking
         def edit_current() -> None:
             """
             moves to construction area to edit current level
@@ -299,6 +300,7 @@ class LevelSelect(Utility):
         # 5: name [unstatic] (done)
         # 6: import from keyboard [static] (done, versions untested)
 
+        @self.add_error_checking
         def import_from_clipboard() -> None:
             """
             imports a level from clipboard
@@ -331,6 +333,7 @@ class LevelSelect(Utility):
         # 8: -1 level button [dynamic] (done)
         # 9: +1 level button [dynamic] (done)
 
+        @self.add_error_checking
         def copy_level(level: LevelWrap) -> None:
             """
             copies level data to clipboard

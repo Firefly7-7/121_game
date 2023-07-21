@@ -211,6 +211,61 @@ class Utility:
         logging.basicConfig(filename="errors.log",
                             format='%(asctime)s\n%(message)s',
                             filemode='a')
+        self.in_game_place = self.add_error_checking(
+            self.in_game_place,
+            "An error occurred in game!  Check the log file for more info.",
+            self,
+            "exit_level",
+            callback_error_fn=Utility.change_place
+        )
+        self.open_directory = self.add_error_checking(
+            self.open_directory,
+            "Opening directory failed.  See log file for more info.",
+        )
+
+    def add_error_checking(
+            self,
+            func: Callable,
+            message: str = "Error occurred during execution!  Details added to log.",
+            *callback_args,
+            callback_error_fn: Callable = None,
+            callback_done_fn: Callable = None,
+            callback_finally_fn: Callable = None,
+    ) -> Callable:
+        """
+        adds error handling to a callable
+        :param func:
+        :param message: error message
+        :param callback_args: arguments passed to callback errors, if any
+        :param callback_error_fn: gjkawjhh idk callback stuff
+        :param callback_done_fn: callback if finished successfully
+        :param callback_finally_fn: callback for end, no matter what
+        :return:
+        """
+
+        def error_wrap(*args, **kwargs) -> Any:
+            """
+            interior try/except wrap
+            :param args:
+            :param kwargs:
+            :return:
+            """
+            try:
+                res = func(*args, **kwargs)
+                if callback_done_fn is not None:
+                    callback_done_fn(*callback_args)
+            except Exception as exc:
+                res = None
+                self.log_error(exc)
+                self.alerts.add_alert(message)
+                if callback_error_fn is not None:
+                    callback_error_fn(*callback_args)
+            finally:
+                if callback_finally_fn is not None:
+                    callback_finally_fn(*callback_args)
+            return res
+
+        return error_wrap
 
     def open_directory(self, args: list[str]) -> None:
         """
