@@ -54,7 +54,7 @@ class Construction(Utility):
                 self.level_data.level_on.name = self.typing.text
                 self.end_typing()
             else:
-                self.level_data.level_on.name = self.button_names[2]
+                self.level_data.level_on.name = self.buttons[2].text
             save_current_editing()
             load_editing_level(index)
 
@@ -102,7 +102,7 @@ class Construction(Utility):
                         preserve_words=True
                     )
                     width = name_button.get_width()
-                self.replace_button(2, Button(
+                name_button_obj = Button(
                     None,
                     name_button,
                     name,
@@ -110,20 +110,9 @@ class Construction(Utility):
                     (255, 255, 255),
                     (0, 0, 0),
                     (0.5, 0.5),
-                    outline_width=5,
-                    arguments={
-                        "index": 2,
-                        "font": 75,
-                        "max_characters": 100,
-                        "min_characters": 2,
-                        "others": [
-                            (3, -0.5, 0, -40, 0),
-                            (4, 0.5, 0, 40, 0)
-                        ],
-                        "max_line_pixels": 240 * 6,
-                        "max_width": 512,
-                    }
-                ))
+                    outline_width=5
+                )
+                self.buttons[2] = name_button_obj
             else:
                 if name is None:
                     name = self.level_data.level_on.name
@@ -138,7 +127,7 @@ class Construction(Utility):
                         preserve_words=True
                     )
                     width = name_button.get_width()
-                self.replace_button(2, Button(
+                name_button_obj = Button(
                     self.write_button_text,
                     name_button,
                     name,
@@ -146,25 +135,14 @@ class Construction(Utility):
                     (255, 255, 255),
                     (0, 0, 0),
                     (0.5, 0.5),
-                    outline_width=5,
-                    arguments={
-                        "index": 2,
-                        "font": 75,
-                        "max_characters": 100,
-                        "min_characters": 2,
-                        "others": [
-                            (3, -0.5, 0, -40, 0),
-                            (4, 0.5, 0, 40, 0)
-                        ],
-                        "max_line_pixels": 240 * 6,
-                        "max_width": 512,
-                    }
-                ))
+                    outline_width=5
+                )
+                self.buttons[2] = name_button_obj
 
             if self.constructing == 0:
-                self.replace_button(3, None)
+                self.buttons[3] = None
             else:
-                self.replace_button(3, self.make_text_button(
+                self.buttons[3] = self.make_text_button(
                     "<",
                     75,
                     move_to_editing_level,
@@ -172,8 +150,8 @@ class Construction(Utility):
                     border_width=5,
                     arguments={"index": self.constructing - 1},
                     override_text="Last work in progress level."
-                ))
-            self.replace_button(4, self.make_text_button(
+                )
+            self.buttons[4] = self.make_text_button(
                 "+" if self.constructing == len(self.working_on) - 1 else ">",
                 75,
                 move_to_editing_level,
@@ -182,7 +160,19 @@ class Construction(Utility):
                 arguments={"index": self.constructing + 1},
                 override_text="Add new work in progress level." if self.constructing == len(
                     self.working_on) else "Next work in progress level."
-            ))
+            )
+            name_button_obj.arguments = {
+                "button_obj": name_button_obj,
+                "font": 75,
+                "max_characters": 100,
+                "min_characters": 2,
+                "others": [
+                    (self.buttons[3], -0.5, 0, -40, 0),
+                    (self.buttons[4], 0.5, 0, 40, 0)
+                ],
+                "max_line_pixels": 240 * 6,
+                "max_width": 512,
+            }
 
         def update_game_image() -> None:
             """
@@ -218,7 +208,7 @@ class Construction(Utility):
         update_game_image()
 
         # 0: back button [static]
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Back",
             50,
             self.change_place,
@@ -245,7 +235,7 @@ class Construction(Utility):
                 self.working_on.append(code)
                 update_game_image()
 
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Import from Clipboard",
             25,
             import_level,
@@ -256,13 +246,13 @@ class Construction(Utility):
             max_width=256
         ))
         # 2: level name button [nonstatic]
-        self.add_button(None)
+        self.buttons.add_button(None)
         # 3: level iter left [dynamic]
-        self.add_button(None)
+        self.buttons.add_button(None)
         # 4: level iter right [nonstatic]
-        self.add_button(None)
+        self.buttons.add_button(None)
         # 5: delete [static]
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Delete",
             20,
             delete_current_level,
@@ -310,7 +300,7 @@ class Construction(Utility):
             self.place = "level_select"
 
         if self.admin:
-            self.add_button(self.make_text_button(
+            self.buttons.add_button(self.make_text_button(
                 "Force Export",
                 50,
                 force_export_level,
@@ -320,7 +310,7 @@ class Construction(Utility):
                 max_width=256
             ))
         else:
-            self.add_button(self.make_text_button(
+            self.buttons.add_button(self.make_text_button(
                 "Export",
                 50,
                 play_current_level,
@@ -331,7 +321,7 @@ class Construction(Utility):
                 max_width=256
             ))
         # 7: test [static]
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Test",
             25,
             play_current_level,
@@ -374,9 +364,11 @@ class Construction(Utility):
             :param change: how much to change it by
             :return: None
             """
-            self.level_data.level_on.gravity[index] = clean_decimal(
+            grav = list(self.level_data.level_on.gravity)
+            grav[index] = clean_decimal(
                 (1 - 2 * index) * (((1 - 2 * index) * self.level_data.level_on.gravity[index] + change) % (4 - 1.25 * index))
             )
+            self.level_data.level_on.gravity = grav
             update_game_image()
             update_construction_area(0)
 
@@ -405,7 +397,7 @@ class Construction(Utility):
             if self.typing.typing and self.typing.button_target > 10:
                 self.end_typing()
             editing_block = block_name_switch
-            self.replace_button(11 + len(BLOCK_LIST), self.make_text_button(
+            self.buttons[11 + len(BLOCK_LIST)] = self.make_text_button(
                 editing_block.name,
                 30,
                 None,
@@ -416,8 +408,8 @@ class Construction(Utility):
                 max_line_pixels=256,
                 max_width=256,
                 text_align=0.5
-            ))
-            self.replace_button(13 + len(BLOCK_LIST), self.make_text_button(
+            )
+            self.buttons[13 + len(BLOCK_LIST)] = self.make_text_button(
                 editing_block.description,
                 10,
                 None,
@@ -427,7 +419,7 @@ class Construction(Utility):
                 ),
                 y_align=0,
                 max_line_pixels=200
-            ))
+            )
             del self.buttons[14 + len(BLOCK_LIST):]
             prep_construction_control_buttons()
             update_construction_control_buttons()
@@ -495,7 +487,7 @@ class Construction(Utility):
             """
             for field_name, display_name, field_type, *args in BLOCK_CONSTRUCTION[editing_block]:
                 for count in range(0, BUTTON_COUNT[field_type]):
-                    self.add_button(None)
+                    self.buttons.add_button(None)
 
         def update_construction_control_buttons() -> None:
             """
@@ -503,7 +495,7 @@ class Construction(Utility):
             :return:
             """
             index = 14 + len(BLOCK_LIST)
-            self.replace_button(11 + BLOCK_LIST.index(editing_block), self.make_img_button(
+            self.buttons[11 + BLOCK_LIST.index(editing_block)] = self.make_img_button(
                 switch_construction_block,
                 self.level_data.draw_block(
                     Block(
@@ -521,7 +513,7 @@ class Construction(Utility):
                 ),
                 editing_block.name,
                 arguments={"block_name_switch": editing_block}
-            ))
+            )
 
             y = (180 + ceil(len(BLOCK_LIST) / per_line) * line_spacing)
             round(260 + ceil(len(BLOCK_LIST) / per_line) * line_spacing)
@@ -542,7 +534,7 @@ class Construction(Utility):
 
             y += block_img.get_height() / 2
 
-            self.replace_button(12 + len(BLOCK_LIST), self.make_img_button(
+            self.buttons[12 + len(BLOCK_LIST)] = self.make_img_button(
                 None,
                 block_img,
                 (
@@ -550,7 +542,7 @@ class Construction(Utility):
                     y
                 ),
                 None,
-            ))
+            )
 
             y += block_img.get_height() / 2
 
@@ -569,7 +561,7 @@ class Construction(Utility):
                         break
                 if not place_field:
                     for m in range(0, BUTTON_COUNT[field_type]):
-                        self.replace_button(index, None)
+                        self.buttons[index] = None
                         index += 1
                     continue
                 if field_type == FieldType.boolean:
@@ -577,7 +569,7 @@ class Construction(Utility):
                         display = args[0][value]
                     else:
                         display = value
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         f"{display_name}: {display}",
                         12,
                         change_field,
@@ -589,7 +581,7 @@ class Construction(Utility):
                         y_align=0,
                         arguments={"field": field_name, "field_index": field_index},
                         max_width=256
-                    ))
+                    )
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += 6 + self.buttons[index].rect.height
                     index += 1
@@ -612,9 +604,9 @@ class Construction(Utility):
                     )
                     button.inflate_center = (0.5, 0.5)
                     offset = round(button.img.get_width() / 2 + 20)
-                    self.replace_button(index, button)
+                    self.buttons[index] = button
                     index += 1
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         "<",
                         12,
                         change_field,
@@ -624,9 +616,9 @@ class Construction(Utility):
                         ),
                         border_width=5,
                         arguments={"field": field_name, "field_index": field_index, "direction": -1}
-                    ))
+                    )
                     index += 1
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         ">",
                         12,
                         change_field,
@@ -636,7 +628,7 @@ class Construction(Utility):
                         ),
                         border_width=5,
                         arguments={"field": field_name, "field_index": field_index, "direction": 1}
-                    ))
+                    )
                     index += 1
                     y += 6 + max(self.buttons[index - 1].rect.height, self.buttons[index - 3].rect.height)
                 elif field_type == FieldType.list:
@@ -644,7 +636,7 @@ class Construction(Utility):
                         display = args[0][value]
                     else:
                         display = value
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         f"{display_name}: {display}",
                         12,
                         change_field,
@@ -656,12 +648,12 @@ class Construction(Utility):
                         border_width=5,
                         max_line_pixels=total_width,
                         arguments={"field": field_name, "field_index": field_index}
-                    ))
+                    )
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += 6 + self.buttons[index].rect.height
                     index += 1
                 elif field_type == FieldType.text:
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         f"{display_name}: {value}",
                         12,
                         change_field,
@@ -673,7 +665,7 @@ class Construction(Utility):
                         max_line_pixels=total_width,
                         y_align=0,
                         arguments={"field": field_name, "field_index": field_index, "button_index": index}
-                    ))
+                    )
                     self.buttons[index].inflate_center = (0.5, 0.5)
                     y += self.buttons[index].rect.height + 6
                     index += 1
@@ -693,9 +685,9 @@ class Construction(Utility):
                     )
                     button.inflate_center = (0.5, 0.5)
                     offset = round(button.img.get_width() / 2 + 20)
-                    self.replace_button(index, button)
+                    self.buttons[index] = button
                     index += 1
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         "<",
                         12,
                         change_field,
@@ -705,9 +697,9 @@ class Construction(Utility):
                         ),
                         border_width=5,
                         arguments={"field": field_name, "field_index": field_index, "direction": -1}
-                    ))
+                    )
                     index += 1
-                    self.replace_button(index, self.make_text_button(
+                    self.buttons[index] = self.make_text_button(
                         ">",
                         12,
                         change_field,
@@ -717,7 +709,7 @@ class Construction(Utility):
                         ),
                         border_width=5,
                         arguments={"field": field_name, "field_index": field_index, "direction": 1}
-                    ))
+                    )
                     index += 1
                     y += 6 + max(self.buttons[index - 1].rect.height, self.buttons[index - 3].rect.height)
 
@@ -762,7 +754,7 @@ class Construction(Utility):
                 )
             self.buttons[17 + len(BARRIERS)].rect = self.buttons[17 + len(BARRIERS)].img.get_rect(center=self.buttons[
                 17 + len(BARRIERS)].rect.center)
-            self.replace_button(18 + len(BARRIERS), self.make_text_button(
+            self.buttons[18 + len(BARRIERS)] = self.make_text_button(
                 editing_barrier[0].name,
                 20,
                 None,
@@ -771,7 +763,7 @@ class Construction(Utility):
                     self.buttons[17 + len(BARRIERS)].rect.y + 120
                 ),
                 border_width=5
-            ))
+            )
 
         def update_barrier_side(side: int) -> None:
             """
@@ -804,7 +796,7 @@ class Construction(Utility):
             editing_link[0] = place
             del self.buttons[14:]
             if place == "Place":
-                self.add_button(self.make_text_button(
+                self.buttons.add_button(self.make_text_button(
                     f"Link # {editing_link[1] + 1}",
                     20,
                     None,
@@ -814,13 +806,13 @@ class Construction(Utility):
                 img = Surface((60, 60))
                 img.fill((255, 255, 255))
                 circle(img, degree_to_rgb(editing_link[1] * 54), (30, 30), 30)
-                self.add_button(self.make_img_button(
+                self.buttons.add_button(self.make_img_button(
                     None,
                     img,
                     (construction_center, 235),
                     None
                 ))
-                self.add_button(self.make_text_button(
+                self.buttons.add_button(self.make_text_button(
                     "-",
                     16,
                     change_link_number,
@@ -828,7 +820,7 @@ class Construction(Utility):
                     border_width=5,
                     arguments={"change": -1}
                 ))
-                self.add_button(self.make_text_button(
+                self.buttons.add_button(self.make_text_button(
                     "+",
                     16,
                     change_link_number,
@@ -837,7 +829,7 @@ class Construction(Utility):
                     arguments={"change": 1}
                 ))
             elif place == "Pick":
-                self.add_button(self.make_text_button(
+                self.buttons.add_button(self.make_text_button(
                     "?",
                     100,
                     None,
@@ -845,7 +837,7 @@ class Construction(Utility):
                     override_text="pick mode"
                 ))  # 11:13 switch places buttons
             elif place == "Remove":
-                self.add_button(self.make_img_button(
+                self.buttons.add_button(self.make_img_button(
                     None,
                     self.level_data.draw_block(Block(Blocks.delete, []), self.fonts[60], 100),
                     (construction_center, 222),
@@ -873,13 +865,13 @@ class Construction(Utility):
                     del self.level_data.level_on.links[editing_link[1]]
                     editing_link[1] = (editing_link[1] + change) % len(self.level_data.level_on.links)
                 update_game_image()
-            self.replace_button(14, self.make_text_button(
+            self.buttons[14] = self.make_text_button(
                 f"Link # {editing_link[1] + 1}",
                 20,
                 None,
                 (construction_center, 180),
                 border_width=5
-            ))
+            )
             img = Surface((60, 60))
             img.fill((255, 255, 255))
             circle(img, degree_to_rgb(editing_link[1] * 54), (30, 30), 30)
@@ -1371,5 +1363,5 @@ class Construction(Utility):
                                 180 * 2 + self.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
                             )
                         )
-        self.level_data.level_on.name = self.button_names[2]
+        self.level_data.level_on.name = self.buttons[2].text
         save_current_editing()

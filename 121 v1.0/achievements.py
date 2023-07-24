@@ -17,7 +17,7 @@ class Achievements(Utility):
         :return: nothing
         """
 
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Back",
             20,
             self.change_place,
@@ -59,7 +59,7 @@ class Achievements(Utility):
             if index + lines < len(self.achievements):
                 self.buttons[5 + index + lines].rect.midleft = (240 * 4 + 20, 0)
 
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Up",
             20,
             change_index,
@@ -72,7 +72,7 @@ class Achievements(Utility):
             x_align=0,
             arguments={"change": -1}
         ))  # 1 up
-        self.add_button(self.make_text_button(
+        self.buttons.add_button(self.make_text_button(
             "Down",
             20,
             change_index,
@@ -86,8 +86,8 @@ class Achievements(Utility):
             arguments={"change": 1}
         ))  # 2 down
 
-        self.add_button(None)  # 3 looking at name
-        self.add_button(None)  # 4 looking at description/data
+        self.buttons.add_button(None)  # 3 looking at name
+        self.buttons.add_button(None)  # 4 looking at description/data
 
         def display_achievement(achievement_name: str) -> None:
             """
@@ -95,7 +95,7 @@ class Achievements(Utility):
             :param achievement_name: name of the displaying_achievement
             :return: none
             """
-            self.replace_button(3, self.make_text_button(
+            self.buttons[3] = self.make_text_button(
                 achievement_name,
                 32,
                 None,
@@ -106,7 +106,7 @@ class Achievements(Utility):
                 max_line_pixels=240 * 2 + 120,
                 text_align=0.5,
                 x_align=0.5
-            ))
+            )
             displaying_achievement = BASE_ACHIEVEMENTS[achievement_name]
             text = [displaying_achievement.description]
             if displaying_achievement.easter_egg_levels != ():
@@ -121,7 +121,7 @@ class Achievements(Utility):
                 text.append("\nCan give nested achievements:")
                 for nested_achievement, *args in displaying_achievement.nest_achievements:
                     text.append(nested_achievement)
-            self.replace_button(4, self.make_text_button(
+            self.buttons[4] = self.make_text_button(
                 "\n".join(text),
                 20,
                 None,
@@ -133,10 +133,10 @@ class Achievements(Utility):
                 text_align=0,
                 x_align=1,
                 center=(240 * 4 - 10, self.buttons[3].rect.height + 10)
-            ))
+            )
 
         for achievement in self.achievements:  # 5+ look at displaying_achievement buttons
-            self.add_button(self.make_text_button(
+            self.buttons.add_button(self.make_text_button(
                 achievement,
                 20,
                 display_achievement,

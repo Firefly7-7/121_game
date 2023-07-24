@@ -466,7 +466,6 @@ class Options(Utility):
                     self.buttons[self.editing_controls[on].button_index + 1].rect.topright = (480 - width - 20, 20 + i * 70)
                     self.buttons[self.editing_controls[on].button_index + 2].rect.topleft = (480 + width + 20, 20 + i * 70)
                 on += 1
-            self.handle_buttons()
         for control in self.editing_controls:
             if control.name == "Font":
                 self.fonts.new_fonts(control.args[control.value])

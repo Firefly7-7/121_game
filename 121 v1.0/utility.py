@@ -5,7 +5,7 @@ utility super-class
 import pygame
 from pygame.constants import USEREVENT
 from pygame.surface import Surface
-from game_structures import Button, TypingData, AlertHolder
+from game_structures import Button, ButtonHolder, TypingData, AlertHolder
 from typing import Callable, Union, Any
 from game_structures import ControlOption, FontHolder
 from player_data import load_player_data, empty_player_data
@@ -44,9 +44,10 @@ class Utility:
         loads player data and sets up the game with correct lists
         """
 
-        self.buttons: list[[Button]] = list()
-        self.button_names: list[[str]] = list()
-        self.button_hover_keyed = -1
+        self.buttons: ButtonHolder = ButtonHolder()
+        self.add_button = self.buttons.add_button
+        self.make_img_button = Button.make_img_button
+        self.button_hover_keyed = False
         self.button_hover_next_key = pygame.K_TAB
         self.button_hover_press_key = pygame.K_RETURN
 
@@ -178,36 +179,6 @@ class Utility:
             lifespan=300
         )
 
-        # # makes opening directories cross-platform
-        # if system() == "Windows" or system() == "Darwin":
-        #     def open_directory(args: list[str]) -> None:
-        #         """
-        #         opens directory, windows version
-        #         :param args: parts of path
-        #         :return:
-        #         """
-        #         Popen(["explorer", "\\".join(args)])
-        # elif system() == "MacOS":
-        #     def open_directory(args: list[str]) -> None:
-        #         """
-        #         opens directory, windows version
-        #         :param args: parts of path
-        #         :return:
-        #         """
-        #         call(["open", "\\".join(args)])
-        # else:
-        #     def open_directory(args: list[str]) -> None:
-        #         """
-        #         tries to open using general attempt, but if errors puts out an alert
-        #         :param args:
-        #         :return:
-        #         """
-        #         try:
-        #             Popen(["xdg-open", "\\".join(args)])
-        #         except:
-        #             cls.alerts.add_alert(f"Sorry, the game doesn't support opening folders in '{system()}'.  Contact the developer.")
-        # cls.open_directory = open_directory
-
         logging.basicConfig(filename="errors.log",
                             format='%(asctime)s\n%(message)s',
                             filemode='a')
@@ -274,22 +245,21 @@ class Utility:
         """
         show_in_file_manager("\\".join(args))
 
-    def start_typing(self, start_text: str = "", button_index: int = None) -> TypingData:
+    def start_typing(self, start_text: str = "", button: Button = None) -> TypingData:
         """
         begins typing, output in cls.text
         :param start_text: what starting text is
-        :param button_index: what button editing
+        :param button: what button editing
         :return: typing instance
         """
-        # print(f"Start typing with '{start_text}'")
         self.typing = TypingData(
             typing=True,
             text=start_text,
-            button_target=button_index,
+            button_target=button,
             instance=self.typing.instance + 1
         )
-        if button_index is not None:
-            self.buttons[button_index].typing_instance = self.typing.instance
+        if button is not None:
+            button.typing_instance = self.typing.instance
         return self.typing
 
     def end_typing(self) -> str:
@@ -310,18 +280,21 @@ class Utility:
         :return: none
         """
         if self.tts:
-            task = asyncio.ensure_future(asynchronous_speak(text))
-            tts_tasks.add(task)
-            task.add_done_callback(tts_tasks.discard)
+            if text is None:
+                return
+            if text == "":
+                return
+            pool = Pool(1)
+            pool.apply_async(asynchronous_speak, args=[text])
 
     def rewrite_button(
             self,
             new_text: str,
-            index: int,
+            button_obj: Button,
             font: int,
             center: tuple[int, int],
             instance: int = None,
-            others: list[tuple[int, float, float, int, int]] = (),
+            others: list[tuple[Union[Button, ButtonHolder], float, float, int, int]] = (),
             max_line_pixels: int = 0,
             max_width: int = 0,
             y_align: int = 0.5,
@@ -332,7 +305,7 @@ class Utility:
         change text of target button to new string.  Also moves buttons around
         as described
         :param new_text: new text to change it to
-        :param index: integer index of button to keep track of
+        :param button_obj: button to write on
         :param font: font size of it
         :param center: center of the button to orient around
         :param instance: typing instance
@@ -349,7 +322,7 @@ class Utility:
         :param override_button_name: override the button name if any
         :return: None
         """
-        if instance is not None and self.buttons[index].typing_instance != instance:
+        if instance is not None and button_obj.typing_instance != instance:
             return
         new_img = self.draw_text(new_text, font, max_line_pixels=max_line_pixels, preserve_words=True)
         width = new_img.get_width()
@@ -362,29 +335,29 @@ class Utility:
             )
             width = new_img.get_width()
         height = new_img.get_height()
-        self.buttons[index].img = new_img
+        button_obj.img = new_img
         if override_button_name is None:
             override_button_name = new_text
-        self.button_names[index] = override_button_name
-        self.buttons[index].rect = new_img.get_rect(topleft=(
+        button_obj.text = override_button_name
+        button_obj.rect = new_img.get_rect(topleft=(
             center[0] - x_align * new_img.get_width(),
             center[1] - y_align * new_img.get_height()
         ))
-        for other_index, offset_width, offset_height, offset_x, offset_y in others:
-            if self.buttons[other_index] is None:
+        for other_obj, offset_width, offset_height, offset_x, offset_y in others:
+            if other_obj is None:
                 continue
-            self.buttons[other_index].rect.center = (
+            other_obj.rect.center = (
                 center[0] + offset_width * width + offset_x,
                 center[1] + offset_height * height + offset_y
             )
 
     def write_button_text(
             self,
-            index: int,
+            button_obj: Button,
             font: int,
             max_characters: int = 0,
             min_characters: int = 0,
-            others: list[tuple[int, float, float, int, int]] = (),
+            others: list[tuple[Union[Button, ButtonHolder], float, float, int, int]] = (),
             max_line_pixels: int = 0,
             max_width: int = 0,
             prepend: str = "",
@@ -396,7 +369,7 @@ class Utility:
     ) -> None:
         """
         edits a button's text, given an index.  Wrapper for interior async function
-        :param index: integer index of button to keep track of
+        :param button_obj: button object to keep track of
         :param font: font size of it
         :param max_characters: max characters in a line (0 if no max)
         :param min_characters: minimum characters in a line
@@ -425,15 +398,15 @@ class Utility:
 
             nonlocal start_text
             if start_text is None:
-                start_text = self.button_names[index]
+                start_text = button_obj.text
             current = start_text
 
-            x = self.buttons[index].rect.left + x_align * self.buttons[index].rect.width
-            y = self.buttons[index].rect.top + y_align * self.buttons[index].rect.height
+            x = button_obj.rect.left + x_align * button_obj.rect.width
+            y = button_obj.rect.top + y_align * button_obj.rect.height
 
-            instance = self.start_typing(current, index)
+            instance = self.start_typing(current, button_obj)
 
-            self.rewrite_button(prepend + current + "_" + append, index, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
+            self.rewrite_button(prepend + current + "_" + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
 
             try:
                 while self.typing.instance == instance.instance:
@@ -441,32 +414,32 @@ class Utility:
                         if len(instance.text) > max_characters > 0:
                             current = instance.text[0:max_characters]
                             if "\n" in instance.text[max_characters:]:
-                                self.rewrite_button(prepend + current + append, index, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, start_text)
+                                self.rewrite_button(prepend + current + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, start_text)
                                 self.end_typing()
                                 break
                             instance.text = current
                         current = instance.text
                         if min_characters <= len(current):
                             if len(current) > 0 and current[-1] == "\n":
-                                self.rewrite_button(prepend + current[:-1] + append, index, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
+                                self.rewrite_button(prepend + current[:-1] + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
                                 self.end_typing()
                                 current = current[:-1]
                                 break
                         if "\n" in current:
                             instance.text = current[:current.index("\n")]
                             current = instance.text
-                        self.rewrite_button(prepend + current + "_" + append, index, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
+                        self.rewrite_button(prepend + current + "_" + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
             finally:
                 if len(current) > max_characters > 0 or min_characters > len(current):
                     result = start_text
                 else:
                     result = current
-                if self.buttons[index] is not None and self.buttons[index].typing_instance == instance.instance:
-                    self.rewrite_button(prepend + result + append, index, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align)
-                    self.buttons[index].typing_instance = None
+                if button_obj is not None and button_obj.typing_instance == instance.instance:
+                    self.rewrite_button(prepend + result + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align)
+                    button_obj.typing_instance = None
                 return result
 
-        if self.buttons[index] is not None and self.buttons[index].typing_instance is not None:
+        if button_obj is not None and button_obj.typing_instance is not None:
             return
         pool = Pool(1)
         if callback is None:
@@ -480,7 +453,7 @@ class Utility:
         also handles some other actions that need to happen every frame
         :return: string of typed characters
         """
-        self.handle_buttons()
+        self.buttons.render_onto(self.screen, pygame.mouse.get_pos())
         alert_img = self.alerts.tick()
         if alert_img is not None:
             self.screen.blit(
@@ -507,49 +480,23 @@ class Utility:
                         # print(event.key, event.mod, pygame.KMOD_CTRL)
                 elif self.control_edit is None:
                     if event.key == self.button_hover_next_key:
-                        # print("Button keyed")
-                        self.button_hover_keyed += 1
-                        if self.button_hover_keyed >= len(self.buttons):
-                            self.button_hover_keyed = 0
-                        # noinspection IncorrectFormatting
-                        while self.buttons[self.button_hover_keyed] is None or self.buttons[self.button_hover_keyed].text is None:
-                            self.button_hover_keyed += 1
-                            if self.button_hover_keyed >= len(self.buttons):
-                                self.button_hover_keyed = -1
-                                break
-                        if self.button_hover_keyed >= 0 and self.tts:
-                            self.speak(self.buttons[self.button_hover_keyed].text)
-                        continue
-                    for button in self.buttons:
-                        if button is None:
-                            continue
-                        special_pressed = False
-                        if isinstance(button.special_press, int):
-                            special_pressed = event.key == button.special_press
+                        if self.button_hover_keyed:
+                            match self.buttons.iter_key():
+                                case 1:
+                                    self.button_hover_keyed = False
+                                case 0:
+                                    self.buttons.set_keyed()
                         else:
-                            for click in button.special_press:
-                                if event.key == click:
-                                    special_pressed = True
-                                    break
-                        if special_pressed:
-                            if button.arguments is None:
-                                button.click()
-                            else:
-                                # noinspection PyCallingNonCallable
-                                button.click(**button.arguments)
+                            self.buttons.set_keyed()
+                            self.button_hover_keyed = True
+                        if self.button_hover_keyed:
+                            self.speak(self.buttons.get_hover_keyed_text())
+                    if event.key == pygame.K_RETURN:
+                        self.buttons.do_key()
+                    self.buttons.special_key_click(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    for button in self.buttons:
-                        if button is None:
-                            continue
-                        if button.rect.collidepoint(event.pos):
-                            if button.click is None:
-                                pass
-                            elif button.arguments is None:
-                                button.click()
-                            else:
-                                button.click(**button.arguments)
-                            break
+                    self.buttons.do_click(event.pos)
             elif event.type == USEREVENT:
                 self.alerts.speak.next_speach()
 
@@ -563,65 +510,14 @@ class Utility:
             self.after_game = self.place
         self.place = place
 
-    def add_button(self, button: Union[Button, None]) -> None:
+    def replace_button(self, index: int, button: Button) -> None:
         """
-        adds a button to the double list
-        :param button: button to add
-        :return: none
-        """
-        self.buttons.append(button)
-        if button is None:
-            self.button_names.append(None)
-        else:
-            self.button_names.append(button.text)
-
-    def replace_button(self, index: int, button: Union[Button, None]) -> None:
-        """
-        replaces a button in the double list
-        :param index: index to replace at
-        :param button: button to change to
+        replaces button in button holder (refactoring is hard and tedious, aaagh)
+        :param index:
+        :param button:
         :return:
         """
         self.buttons[index] = button
-        if button is None:
-            self.button_names[index] = None
-        else:
-            self.button_names[index] = button.text
-
-    @staticmethod
-    def make_img_button(
-            click: Union[None, callable],
-            img: Surface,
-            center: tuple[int, int],
-            button_name: Union[str, None],
-            inflate_center: tuple[float, float] = (0.5, 0.5),
-            arguments: Union[None, dict[str, Any]] = None,
-            scale_factor: float = 1.25,
-            special_press: tuple = ()
-    ) -> Button:
-        """
-        creates a button with a given img provided as a surface
-        :param click: click action
-        :param img: image of button
-        :param center: center of button
-        :param button_name: text of the button
-        :param inflate_center: where to inflate the button from
-        :param arguments: click arguments
-        :param scale_factor: how much the button inflates when moused over
-        :param special_press: what controls can be used to press it
-        :return: a formed button
-        """
-        return Button(
-            click,
-            img,
-            button_name,
-            img.get_rect(center=center),
-            inflate_center=inflate_center,
-            arguments=arguments,
-            scale_factor=scale_factor,
-            special_press=special_press,
-            outline_width=0
-        )
 
     def make_text_button(
             self,
@@ -664,6 +560,8 @@ class Utility:
         :param arguments: arguments to be used in the click action
         :param special_press: special keys that press button
         :param override_text: overrides text for tts
+        :param max_lines: maximum number of lines for the button
+        :param enforce_width: enforces if lines can go over this width
         :return: a constructed button to be added to the list
         """
         text_surface = self.draw_text(
@@ -911,89 +809,6 @@ class Utility:
         width, height = text.get_size()
         surface.blit(text, (x - centerx * width, y - centery * height))
 
-    def handle_buttons(self) -> None:
-        """
-        engine to handle all buttons
-        :return: none
-        """
-        pos = pygame.mouse.get_pos()
-        for i in range(len(self.buttons)):
-            if self.buttons[i] is not None:
-                self.handle_button(
-                    self.buttons[i],
-                    self.buttons[i].rect.collidepoint(pos),
-                    i == self.button_hover_keyed
-                )
-
-    def handle_button(
-            self,
-            button: Button,
-            mouse_on: bool,
-            keyed: bool,
-    ) -> None:
-        """
-        handles a singular button
-        whoops, was originally distributing click and draw, but eh
-        :param button: button structure that is being handled
-        :param mouse_on: if the mouse is on the button
-        :param keyed: if the keyed selection is on this button
-        :return: None
-        """
-        self.draw_button(button, mouse_on, keyed)
-
-    def draw_button(
-            self,
-            button: Button,
-            mouse_on: bool,
-            keyed: bool,
-    ) -> None:
-        """
-        handles a singular button
-        :param button: button structure that is being handled
-        :param mouse_on: if the mouse is on the button
-        :param keyed: if the keyed selection is on this button
-        :return: None
-        """
-        if button.click is not None and (mouse_on or keyed):
-            # mouse is over or keyed clicker is on
-
-            # gets coordinates of button parts for scaling
-            x, y = button.rect.topleft
-            centerx, centery = button.rect.center
-            width, height = centerx - x, centery - y
-            new_centerx = centerx + width * (button.inflate_center[0] - 0.5) * -0.5
-            new_centery = centery + height * (button.inflate_center[1] - 0.5) * -0.5
-
-            new = pygame.transform.scale(
-                button.img,
-                (width * 2 * button.scale_factor, height * 2 * button.scale_factor)
-            )
-
-            self.screen.blit(
-                new,
-                (new_centerx - width * button.scale_factor, new_centery - height * button.scale_factor)
-            )
-            if button.outline_width > 0:
-                pygame.draw.rect(
-                    self.screen,
-                    button.outline_color,
-                    new.get_rect(center=(new_centerx, new_centery)).inflate(
-                        1.75 * button.outline_width,
-                        1.75 * button.outline_width
-                    ),
-                    width=button.outline_width
-                )
-        else:
-            # not over
-            self.screen.blit(button.img, button.rect)
-            if button.outline_width > 0:
-                pygame.draw.rect(
-                    self.screen,
-                    button.outline_color,
-                    button.rect.inflate(2 * button.outline_width, 2 * button.outline_width),
-                    width=button.outline_width
-                )
-
     def give_achievement(self, achievement_name: str, previous: set[str] = None) -> None:
         """
         gives an achievement to the player
@@ -1102,7 +917,7 @@ class Utility:
         return self.pressed[key]
 
 
-async def asynchronous_speak(text: str) -> None:
+def asynchronous_speak(text: str) -> None:
     """
     asynchronous speak method using google text to speach
     :param text: text to read
@@ -1110,8 +925,8 @@ async def asynchronous_speak(text: str) -> None:
     """
     mp3_fp = BytesIO()
     try:
-        tts = aiogTTS()
-        await tts.write_to_fp(text, mp3_fp)
+        tts = gTTS(text)
+        tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
         pygame.mixer.music.load(mp3_fp, "mp3")
         pygame.mixer.music.play()

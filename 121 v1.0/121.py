@@ -31,7 +31,7 @@ class Game(Start, Options, LevelSelect, EnterAndExit, Tutorial, Credits, Constru
         self.ran = True
         try:
             while self.running:
-                self.button_hover_keyed = -1
+                self.button_hover_keyed = False
                 self.buttons.clear()
                 self.end_typing()
                 if self.place == "testing":
