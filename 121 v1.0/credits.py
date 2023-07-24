@@ -31,14 +31,19 @@ class Credits(Utility):
             special_press="Back"
         ))
         credits_text = (
-            "Main Developer:\n"
-            "Fractal\n"
-            "\n"
-            "Level Designers:\n"
-            "Ishililly (Creator of 'The End...')\n"
-            "\n"
-            "Play Testers:\n"
-            "Ishililly, Eva, Walkdoge"
+            """
+            Main Developer:
+            Fractal
+            
+            Mac Developer:
+            PLx22
+            
+            Level Designers:
+            Ishililly (Creator of 'The End...')
+            
+            Play Testers:
+            Ishililly, Eva, Walkdoge
+            """
         )
         self.add_button(self.make_text_button(
             credits_text,
