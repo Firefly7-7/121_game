@@ -507,6 +507,19 @@ class ButtonHolder(ButtonHolderTemplate):
     def __len__(self):
         return len(self.list)
 
+    def __contains__(self, item):
+        for button in self.list:
+            if button is item:
+                return True
+            if button is None:
+                continue
+            if isinstance(item, self.__class__) and item in button:
+                return True
+        return False
+
+    def __iter__(self):
+        return self.list.__iter__()
+
 
 @dataclass()
 class SpeakNode:
