@@ -23,10 +23,13 @@ class ParentConstructionArea(ABC):
     """
 
     buttons = ButtonHolder()
+    name_buttons = ButtonHolder()
     update_display: Callable = None
     display_width: int = None
     construction_center: int = None
     game_object = None
+    construction_areas_available = list()
+    construction_area_pointer = 0
 
     total_width = 200
     per_line = 7
@@ -38,10 +41,21 @@ class ParentConstructionArea(ABC):
     def game_object():
         return ParentConstructionArea._game_object
 
+    @property
+    @staticmethod
+    @abstractmethod
+    def name():
+        pass
+
     @staticmethod
     @game_object.setter
     def game_object(value):
         ParentConstructionArea._game_object = value
+
+    @staticmethod
+    def register_areas(lst: list):
+        ParentConstructionArea.construction_areas_available.clear()
+        ParentConstructionArea.construction_areas_available.extend(lst)
 
     @classmethod
     def single_time_prepare(cls, update_level_display: Callable, game_object) -> ButtonHolder:
@@ -53,9 +67,36 @@ class ParentConstructionArea(ABC):
         ParentConstructionArea.display_width = game_object.level_display.get_width()
         ParentConstructionArea.construction_center = round(240 * 3 + ParentConstructionArea.display_width / 4)
         ParentConstructionArea.game_object = game_object
+
+        ParentConstructionArea.name_buttons.add_button(None)
+        # 6.0.1-2: construction area iter buttons
+        ParentConstructionArea.name_buttons.add_button(ParentConstructionArea.game_object.make_text_button(
+            "<",
+            20,
+            ParentConstructionArea.update_construction_area,
+            center=(0, 0),
+            y_align=0.5,
+            border_width=5,
+            arguments={"index_change": -1},
+            special_press="Left"
+        ))
+        ParentConstructionArea.name_buttons.add_button(ParentConstructionArea.game_object.make_text_button(
+            ">",
+            20,
+            ParentConstructionArea.update_construction_area,
+            center=(0, 0),
+            y_align=0.5,
+            border_width=5,
+            arguments={"index_change": 1},
+            special_press="Right"
+        ))
+
         for cl in cls.__subclasses__():
             cl.single_time_prep(game_object)
-        return ParentConstructionArea.buttons
+        total = ButtonHolder()
+        total.add_button(ParentConstructionArea.name_buttons)
+        total.add_button(ParentConstructionArea.buttons)
+        return total
 
     @classmethod
     def single_time_prep(cls, game_object):
@@ -67,12 +108,30 @@ class ParentConstructionArea(ABC):
         pass
 
     @staticmethod
-    def update_construction_area() -> None:
+    def update_construction_area(index_change: int) -> None:
         """
         changes construction space
         :return: none
         """
+        ParentConstructionArea.construction_area_pointer = (ParentConstructionArea.construction_area_pointer + index_change) % len(ParentConstructionArea.construction_areas_available)
         ParentConstructionArea.buttons.clear()
+        if not isinstance(ParentConstructionArea.game_object.level_data, LevelWrap):
+            return
+        ParentConstructionArea.name_buttons[0] = ParentConstructionArea.game_object.make_text_button(
+            ParentConstructionArea.construction_areas_available[ParentConstructionArea.construction_area_pointer].name,
+            30,
+            None,
+            (240 * 3 + ParentConstructionArea.game_object.level_display.get_width() / 4, 140),
+            y_align=0.5,
+            border_width=5
+        )
+        width = ParentConstructionArea.name_buttons[0].rect.width / 2
+        display_width = ParentConstructionArea.game_object.level_display.get_width()
+        ParentConstructionArea.name_buttons[1].rect.center = (240 * 3 + display_width / 4 - 20 - width, 140)
+        ParentConstructionArea.name_buttons[2].rect.center = (240 * 3 + display_width / 4 + 20 + width, 140)
+        if ParentConstructionArea.game_object.typing.typing and ParentConstructionArea.game_object.typing.button_target not in ParentConstructionArea.game_object.buttons:
+            ParentConstructionArea.game_object.end_typing()
+        ParentConstructionArea.construction_areas_available[ParentConstructionArea.construction_area_pointer].update_construction_area()
 
     @staticmethod
     def click_tick(mouse_coords: tuple[int, int]) -> None:
@@ -81,7 +140,8 @@ class ParentConstructionArea(ABC):
         :param mouse_coords:
         :return:
         """
-        pass
+        if ParentConstructionArea.construction_areas_available[ParentConstructionArea.construction_area_pointer].click_tick is not ParentConstructionArea.click_tick:
+            ParentConstructionArea.construction_areas_available[ParentConstructionArea.construction_area_pointer].click_tick(mouse_coords)
 
     @staticmethod
     def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int]) -> None:
@@ -91,13 +151,18 @@ class ParentConstructionArea(ABC):
         :param mouse_coords:
         :return:
         """
-        pass
+        if ParentConstructionArea.construction_areas_available[
+            ParentConstructionArea.construction_area_pointer].tick is not ParentConstructionArea.tick:
+            ParentConstructionArea.construction_areas_available[
+                ParentConstructionArea.construction_area_pointer].tick(mouse_pos, mouse_coords)
 
 
 class PlayerEditing(ParentConstructionArea):
     """
     edit players
     """
+
+    name = "Players"
 
     player_grabbed = None
 
@@ -138,7 +203,6 @@ class PlayerEditing(ParentConstructionArea):
 
     @staticmethod
     def update_construction_area() -> None:
-        ParentConstructionArea.update_construction_area()
         PlayerEditing.buttons.add_button(Button.make_img_button(
             PlayerEditing.grab_player,
             PlayerEditing.player_imgs[ParentConstructionArea.game_object.level_data.level_on.gravity[0]],
@@ -199,6 +263,8 @@ class GravityEditing(ParentConstructionArea):
     gravity editor
     """
 
+    name = "Gravity"
+
     @staticmethod
     def change_gravity(index: int, change: Union[float, int]) -> None:
         """
@@ -207,12 +273,12 @@ class GravityEditing(ParentConstructionArea):
         :param change: how much to change it by
         :return: None
         """
-        grav = list(GravityEditing.level_data.level_on.gravity)
+        grav = list(GravityEditing.game_object.level_data.level_on.gravity)
         grav[index] = clean_decimal(
             (1 - 2 * index) * (
-                    ((1 - 2 * index) * GravityEditing.level_data.level_on.gravity[index] + change) % (4 - 1.25 * index))
+                    ((1 - 2 * index) * GravityEditing.game_object.level_data.level_on.gravity[index] + change) % (4 - 1.25 * index))
         )
-        GravityEditing.level_data.level_on.gravity = grav
+        GravityEditing.game_object.level_data.level_on.gravity = grav
         GravityEditing.update_display()
         GravityEditing.buttons.clear()
         GravityEditing.update_construction_area()
@@ -289,6 +355,8 @@ class BlockEditing(ParentConstructionArea):
     """
     edit blocks in the level
     """
+
+    name = "Blocks"
 
     editing_block: BlockType = Blocks.delete
     editing_block_fields = dict()
@@ -672,11 +740,12 @@ class BarrierEditing(ParentConstructionArea):
     for editing barriers
     """
 
+    name = "Barriers"
+
     editing_barrier: list[BlockType, bool, list[bool]] = [Blocks.delete, False, [True, True, True, True]]
 
     @staticmethod
     def update_construction_area() -> None:
-        ParentConstructionArea.update_construction_area()
         barrier_select_buttons = ButtonHolder()
         BarrierEditing.buttons.add_button(barrier_select_buttons)
         barrier_select_buttons.add_button(Button.make_img_button(
@@ -901,6 +970,8 @@ class LinkEditing(ParentConstructionArea):
     """
     edit links (the video game character, obviously)
     """
+
+    name = "Links"
 
     editing_link = ["Place", 0]
 

@@ -7,16 +7,8 @@ from level_management import make_blank_level, encode_level_to_string, decode_sa
 from pyperclip import paste
 from level_data import LevelWrap
 from game_structures import Button, ButtonHolder
-from constants import CONSTRUCTION_MENUS, BLOCK_LIST, BARRIERS, BLOCK_CONSTRUCTION, BUTTON_COUNT, FieldType
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
-from block_data import Block, Blocks, BlockType
-from copy import deepcopy, copy
-from math import ceil
-from typing import Union
-from pygame.surface import Surface
-from pygame.draw import circle
-from render_help import clean_decimal, degree_to_rgb, draw_arrow, cos, sin
 from construction_areas import ParentConstructionArea, PlayerEditing, GravityEditing, BlockEditing, BarrierEditing, LinkEditing
 
 
@@ -82,7 +74,7 @@ class Construction(Utility):
                 self.level_data = decode_safety_wrap(self.working_on[index])
             update_game_image()
             update_name_placard()
-            update_construction_area(0)
+            ParentConstructionArea.update_construction_area(0)
 
         def update_name_placard(name: str = None) -> None:
             """
@@ -332,77 +324,12 @@ class Construction(Utility):
             special_press="Play"
         ))
 
-        def update_construction_area(index_change: int) -> None:
-            """
-            changes construction space
-            :param index_change: left (-1) or right (1) (or no movement (0))
-            :return: none
-            """
-            construction_area_buttons[1].clear()
-            if not isinstance(self.level_data, LevelWrap):
-                return
-            nonlocal construction_pointer
-            construction_pointer = (construction_pointer + index_change) % len(CONSTRUCTION_MENUS)
-            construction_area_name_buttons[0] = self.make_text_button(
-                CONSTRUCTION_MENUS[construction_pointer],
-                30,
-                None,
-                (240 * 3 + self.level_display.get_width() / 4, 140),
-                y_align=0.5,
-                border_width=5
-            )
-            width = construction_area_name_buttons[0].rect.width / 2
-            display_width = self.level_display.get_width()
-            construction_area_name_buttons[1].rect.center = (240 * 3 + display_width / 4 - 20 - width, 140)
-            construction_area_name_buttons[2].rect.center = (240 * 3 + display_width / 4 + 20 + width, 140)
-            if self.typing.typing and self.typing.button_target not in self.buttons:
-                self.end_typing()
-            if construction_pointer == 0:  # players editing
-                PlayerEditing.update_construction_area()
-            elif construction_pointer == 1:  # gravity setting
-                GravityEditing.update_construction_area()
-            elif construction_pointer == 2:  # blocks setting
-                BlockEditing.update_construction_area()
-            elif construction_pointer == 3:  # barriers setting
-                BarrierEditing.update_construction_area()
-            elif construction_pointer == 4:  # links setting
-                LinkEditing.update_construction_area()
+        # 6...: all construction area buttons
 
-        construction_pointer = 0
-
-        # 6.0.0: construction area [nonstatic]
-
-        construction_area_name_buttons = ButtonHolder()
-        construction_area_name_buttons.add_button(None)
-        # 6.0.1-2: construction area iter buttons
-        construction_area_name_buttons.add_button(self.make_text_button(
-            "<",
-            20,
-            update_construction_area,
-            center=(0, 0),
-            y_align=0.5,
-            border_width=5,
-            arguments={"index_change": -1},
-            special_press="Left"
-        ))
-        construction_area_name_buttons.add_button(self.make_text_button(
-            ">",
-            20,
-            update_construction_area,
-            center=(0, 0),
-            y_align=0.5,
-            border_width=5,
-            arguments={"index_change": 1},
-            special_press="Right"
-        ))
-
-        construction_area_buttons = ButtonHolder()
-        construction_area_buttons.add_button(construction_area_name_buttons)
-        construction_area_buttons.add_button(ParentConstructionArea.single_time_prepare(update_game_image, self))
-
-        # 6.1.0-> dynamic, construction area parts
-
-        self.add_button(construction_area_buttons)
+        ParentConstructionArea.register_areas(
+            [PlayerEditing, GravityEditing, BlockEditing, BarrierEditing, LinkEditing]
+        )
+        self.add_button(ParentConstructionArea.single_time_prepare(update_game_image, self))
 
         mouse_down = False
         click_tick = False
@@ -429,31 +356,13 @@ class Construction(Utility):
             else:
                 mouse_down = False
             if click_tick and mouse_coords is not None:
-                if construction_pointer == 0:  # players
-                    PlayerEditing.click_tick(mouse_coords)
-                elif construction_pointer == 1:  # gravity (nothing should be done here)
-                    GravityEditing.click_tick(mouse_coords)
-                elif construction_pointer == 2:  # blocks case
-                    BlockEditing.click_tick(mouse_coords)
-                elif construction_pointer == 3:  # barriers case
-                    BarrierEditing.click_tick(mouse_coords)
-                elif construction_pointer == 4:  # links case
-                    LinkEditing.click_tick(mouse_coords)
+                ParentConstructionArea.click_tick(mouse_coords)
 
             self.screen.blit(
                 self.level_display,
                 (240 * 2 - self.level_display.get_width() / 2, 180 * 2 - self.level_display.get_height() / 2)
             )
             # handle construction screen specific visual changes
-            if construction_pointer == 0:  # players
-                PlayerEditing.tick(mouse_pos, mouse_coords)
-            elif construction_pointer == 1:  # gravity (nothing should be done here)
-                GravityEditing.tick(mouse_pos, mouse_coords)
-            elif construction_pointer == 2:  # blocks (drawing blocks hovered over the board should be done here)
-                BlockEditing.tick(mouse_pos, mouse_coords)
-            elif construction_pointer == 3:  # barriers (drawing barriers hovered over the board should be done here)
-                BarrierEditing.tick(mouse_pos, mouse_coords)
-            elif construction_pointer == 4:
-                LinkEditing.tick(mouse_pos, mouse_coords)
+            ParentConstructionArea.tick(mouse_pos, mouse_coords)
         self.level_data.level_on.name = self.buttons[2][0].text
         save_current_editing()
