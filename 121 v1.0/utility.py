@@ -4,7 +4,6 @@ utility super-class
 
 import pygame
 from pygame.constants import USEREVENT
-from pygame.surface import Surface
 from game_structures import Button, ButtonHolder, TypingData, AlertHolder
 from typing import Callable, Union, Any
 from game_structures import ControlOption, FontHolder
@@ -14,13 +13,10 @@ from os import listdir
 from sys import argv
 from constants import LEVEL_LIST, EASTER_EGG_LEVELS, BLOCK_LIST, DEFAULT_SKINS, BASE_ACHIEVEMENTS, ADMIN_BLOCKS
 from gtts import gTTS
-from aiogtts import aiogTTS
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 from skin_management import draw_skin
 from block_data import Block, Blocks
-from platform import system
-from subprocess import Popen, call
 from level_data import LevelWrap
 from level_management import make_blank_level
 import asyncio
