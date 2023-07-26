@@ -9,8 +9,8 @@ from os.path import exists
 from math import floor, ceil
 from copy import deepcopy
 from constants import VERSION, ADDED_DEFAULT_UPDATE_BLOCK_ATTRIBUTES, LETTER_CODES, BLOCKS, BARRIERS, SAVE_CODE, SavingFieldGroups, FieldType
+from safe_paths import getpath
 import traceback
-
 
 def make_blank_level() -> Level:
     """
@@ -41,7 +41,7 @@ def unpack_level(level_name: str, custom: int, easter_egg: bool = False) -> Unio
             prepend = "premade_levels/"
     else:
         prepend = "custom_levels/"
-    name = f"{prepend}{level_name}.txt"
+    name = getpath(f"{prepend}{level_name}.txt")
     if exists(name):
         with open(name, "r", encoding="utf-8") as file:
             data = file.read()
