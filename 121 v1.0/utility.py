@@ -9,25 +9,35 @@ from typing import Callable, Union, Any
 from game_structures import ControlOption, FontHolder
 from player_data import load_player_data, empty_player_data
 from os.path import exists
-from os import listdir
 from sys import argv
 from constants import LEVEL_LIST, EASTER_EGG_LEVELS, BLOCK_LIST, DEFAULT_SKINS, BASE_ACHIEVEMENTS, ADMIN_BLOCKS
 from gtts import gTTS
 from io import BytesIO
-from multiprocessing.pool import ThreadPool as Pool
 from skin_management import draw_skin
 from block_data import Block, Blocks
 from level_data import LevelWrap
 from level_management import make_blank_level
-import asyncio
 from showinfm import show_in_file_manager
 import logging
 import traceback
+import threading
+from safe_paths import safe_listdir
 
 # from pyperclip import paste
 
 
-tts_tasks: set[asyncio.Task] = set()
+def make_async(func: Callable) -> Callable:
+    """
+    makes a function asynchronous
+    :param func:
+    :return:
+    """
+
+    def async_func(*args, **kwargs):
+        thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+        thread.start()
+
+    return async_func
 
 
 class Utility:
@@ -59,7 +69,7 @@ class Utility:
         else:
             player_data = empty_player_data()
         easter_egg_levels = set(EASTER_EGG_LEVELS)
-        existing_lvls = {c_lvl[:-4] for c_lvl in listdir("premade_levels")}.union(easter_egg_levels)
+        existing_lvls = {c_lvl[:-4] for c_lvl in safe_listdir("premade_levels")}.union(easter_egg_levels)
         for i in range(len(player_data.level_list) - 1, -1, -1):
             if player_data.level_list[i][0] not in existing_lvls:
                 del player_data.level_list[i]
@@ -87,7 +97,7 @@ class Utility:
 
         self.level_display = None
         self.level_on = player_data.level_on
-        self.levels = (player_data.level_list, [(c_lvl[:-4], False) for c_lvl in listdir("custom_levels")])
+        self.levels = (player_data.level_list, [(c_lvl[:-4], False) for c_lvl in safe_listdir("custom_levels")])
         self.level_data: LevelWrap = None
         self.look_at = [min(len(self.levels[0]) - 1, self.level_on), 0]
         self.custom = 0
@@ -269,6 +279,7 @@ class Utility:
         )
         return self.typing.text
 
+    @make_async
     def speak(self, text: str) -> None:
         """
         wrapper to make asynchronous speach work
@@ -276,12 +287,15 @@ class Utility:
         :return: none
         """
         if self.tts:
-            if text is None:
+            mp3_fp = BytesIO()
+            try:
+                tts = gTTS(text)
+                tts.write_to_fp(mp3_fp)
+                mp3_fp.seek(0)
+                pygame.mixer.music.load(mp3_fp, "mp3")
+                pygame.mixer.music.play()
+            except:
                 return
-            if text == "":
-                return
-            pool = Pool(1)
-            pool.apply_async(asynchronous_speak, args=[text])
 
     def rewrite_button(
             self,
@@ -347,6 +361,7 @@ class Utility:
                 center[1] + offset_height * height + offset_y
             )
 
+    @make_async
     def write_button_text(
             self,
             button_obj: Button,
@@ -361,7 +376,8 @@ class Utility:
             start_text: str = None,
             callback: Callable = None,
             y_align: int = 0.5,
-            x_align: int = 0.5
+            x_align: int = 0.5,
+            search_against: list[str] = ()
     ) -> None:
         """
         edits a button's text, given an index.  Wrapper for interior async function
@@ -383,65 +399,87 @@ class Utility:
         :param callback: function called when the function completes
         :param y_align: designate where to orient x from
         :param x_align: designate where to orient y from
+        :param search_against: list to search for matches in
         :return: None
         """
 
-        def async_write_button_text() -> str:
-            """
-            asynchronously edits level name on display
-            :return: final string value
-            """
-
-            nonlocal start_text
-            if start_text is None:
-                start_text = button_obj.text
-            current = start_text
-
-            x = button_obj.rect.left + x_align * button_obj.rect.width
-            y = button_obj.rect.top + y_align * button_obj.rect.height
-
-            instance = self.start_typing(current, button_obj)
-
-            self.rewrite_button(prepend + current + "_" + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
-
-            try:
-                while self.typing.instance == instance.instance:
-                    if instance.text != current:
-                        if len(instance.text) > max_characters > 0:
-                            current = instance.text[0:max_characters]
-                            if "\n" in instance.text[max_characters:]:
-                                self.rewrite_button(prepend + current + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, start_text)
-                                self.end_typing()
-                                break
-                            instance.text = current
-                        current = instance.text
-                        if min_characters <= len(current):
-                            if len(current) > 0 and current[-1] == "\n":
-                                self.rewrite_button(prepend + current[:-1] + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
-                                self.end_typing()
-                                current = current[:-1]
-                                break
-                        if "\n" in current:
-                            instance.text = current[:current.index("\n")]
-                            current = instance.text
-                        self.rewrite_button(prepend + current + "_" + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align, start_text)
-            finally:
-                if len(current) > max_characters > 0 or min_characters > len(current):
-                    result = start_text
-                else:
-                    result = current
-                if button_obj is not None and button_obj.typing_instance == instance.instance:
-                    self.rewrite_button(prepend + result + append, button_obj, font, (x, y), instance.instance, others, max_line_pixels, max_width, y_align, x_align)
-                    button_obj.typing_instance = None
-                return result
-
         if button_obj is not None and button_obj.typing_instance is not None:
             return
-        pool = Pool(1)
-        if callback is None:
-            pool.apply_async(async_write_button_text)
-        else:
-            pool.apply_async(async_write_button_text, callback=callback)
+
+        if start_text is None:
+            start_text = button_obj.text
+        current = start_text
+
+        x = button_obj.rect.left + x_align * button_obj.rect.width
+        y = button_obj.rect.top + y_align * button_obj.rect.height
+
+        instance = self.start_typing(current, button_obj)
+
+        def determine_string(finished: bool = False) -> str:
+            if finished:
+                if search_against == ():
+                    return prepend + current + append
+                if current == "":
+                    return prepend + "<search>" + append
+                match = get_first_match(instance.text, search_against)
+                if match is None:
+                    self.speak("No match found")
+                    return prepend + "<no match found>" + append
+                return prepend + match + append
+            if search_against == ():
+                return prepend + current + "_" + append
+            if current == "":
+                return prepend + "<search>" + append
+            match = get_first_match(instance.text, search_against)
+            if match is None:
+                self.speak("No match found")
+                return prepend + "<no match found>" + append
+            return prepend + match + "_" + append
+
+        self.rewrite_button(determine_string(), button_obj, font, (x, y), instance.instance, others,
+                            max_line_pixels, max_width, y_align, x_align, start_text)
+
+        try:
+            while self.typing.instance == instance.instance:
+                if instance.text != current:
+                    if len(instance.text) > max_characters > 0:
+                        current = instance.text[0:max_characters]
+                        if "\n" in instance.text[max_characters:]:
+                            self.end_typing()
+                            break
+                        instance.text = current
+                    current = instance.text
+                    if min_characters <= len(current):
+                        if len(current) > 0 and current[-1] == "\n":
+                            current = current[:-1]
+                            self.end_typing()
+                            break
+                    if "\n" in current:
+                        instance.text = current[:current.index("\n")]
+                        current = instance.text
+                        self.end_typing()
+                        break
+                    self.rewrite_button(determine_string(), button_obj, font, (x, y), instance.instance,
+                                        others, max_line_pixels, max_width, y_align, x_align, start_text)
+        finally:
+            if "\n" in current:
+                current = current[:current.index("\n")]
+            if len(current) > max_characters > 0 or min_characters > len(current):
+                result = start_text
+            else:
+                result = current
+            if search_against != ():
+                result = get_first_match(result, search_against)
+                if result is None:
+                    result = search_against[0]
+            current = result
+            if button_obj is not None and button_obj.typing_instance == instance.instance:
+                self.rewrite_button(determine_string(finished=True), button_obj, font, (x, y), instance.instance, others,
+                                    max_line_pixels, max_width, y_align, x_align)
+                button_obj.typing_instance = None
+            if callback is not None:
+                callback(result)
+            return result
 
     def tick(self) -> None:
         """
@@ -913,18 +951,16 @@ class Utility:
         return self.pressed[key]
 
 
-def asynchronous_speak(text: str) -> None:
+def get_first_match(substring: str, strings: list[str]) -> Union[str, None]:
     """
-    asynchronous speak method using google text to speach
-    :param text: text to read
-    :return: none
+    finds first string in a list with a matching substring
+    :param substring: searching for
+    :param strings: searching through
+    :return: first instance
     """
-    mp3_fp = BytesIO()
-    try:
-        tts = gTTS(text)
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-        pygame.mixer.music.load(mp3_fp, "mp3")
-        pygame.mixer.music.play()
-    except:
-        return
+    if "\n" in substring:
+        substring = substring[:substring.index("\n")]
+    for i, string in enumerate(strings):
+        if substring in string:
+            return string
+    return None

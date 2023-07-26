@@ -250,19 +250,24 @@ class Options(Utility):
             """
             cont = self.editing_controls[index]
             reset_control_change()
-            self.start_typing()
             self.control_edit = index
-            self.replace_button(cont.button_index, self.make_text_button(
-                f"{cont.name}: <search>",
+            self.buttons[cont.button_index].fill_color = (192, 192, 192)
+            self.buttons[cont.button_index].click = reset_control_change
+            self.buttons[cont.button_index].arguments = None
+            self.write_button_text(
+                self.buttons[cont.button_index],
                 50,
-                reset_control_change,
-                (0, 0),
-                (192, 192, 192),
-                (0, 0, 0),
-                5
-            ))
-            if self.tts:
-                self.speak("search")
+                prepend=f"{cont.name}: ",
+                start_text="",
+                search_against=self.editing_controls[index].args,
+                callback=click_though_on_callback
+            )
+            self.speak("search")
+
+        def click_though_on_callback(res: str) -> None:
+            self.editing_controls[self.control_edit].value = self.editing_controls[self.control_edit].args.index(res)
+            self.speak(res)
+            reset_control_change()
 
         def click_through_change(index: int, change: int) -> None:
             """
@@ -373,75 +378,6 @@ class Options(Utility):
                     ))
                     # noinspection PyAttributeOutsideInit
                     self.control_edit = None
-            elif self.editing_controls[self.control_edit].typ == "click_through":
-                if self.typing.text != "":
-                    if self.typing.text[-1] == "\n":
-                        match = get_first_match(self.typing.text[:-1], self.editing_controls[self.control_edit].args)
-                        if match is None:
-                            self.start_typing()
-                            self.replace_button(
-                                self.editing_controls[self.control_edit].button_index,
-                                self.make_text_button(
-                                    f"{self.editing_controls[self.control_edit].name}: <search>",
-                                    50,
-                                    reset_control_change,
-                                    (0, 0),
-                                    (192, 192, 192),
-                                    (0, 0, 0),
-                                    5
-                                )
-                            )
-                        else:
-                            self.end_typing()
-                            self.replace_button(
-                                self.editing_controls[self.control_edit].button_index,
-                                self.make_text_button(
-                                    f"{self.editing_controls[self.control_edit].name}: {self.editing_controls[self.control_edit].args[match]}",
-                                    50,
-                                    click_through_on,
-                                    (0, 0),
-                                    (255, 255, 255),
-                                    (0, 0, 0),
-                                    5,
-                                    arguments={"index": self.control_edit}
-                                )
-                            )
-                            if self.tts:
-                                self.speak(self.editing_controls[self.control_edit].args[match])
-                            self.editing_controls[self.control_edit].value = match
-                            self.control_edit = None
-                    else:
-                        match = get_first_match(self.typing.text, self.editing_controls[self.control_edit].args)
-                        if match is None:
-                            self.replace_button(
-                                self.editing_controls[self.control_edit].button_index,
-                                self.make_text_button(
-                                    f"{self.editing_controls[self.control_edit].name}: <no match found>",
-                                    50,
-                                    reset_control_change,
-                                    (0, 0),
-                                    (192, 192, 192),
-                                    (0, 0, 0),
-                                    5
-                                )
-                            )
-                            if self.tts:
-                                self.speak("No match found")
-                        else:
-                            self.replace_button(
-                                self.editing_controls[self.control_edit].button_index,
-                                self.make_text_button(
-                                    f"{self.editing_controls[self.control_edit].name}: {self.editing_controls[self.control_edit].args[match]}_",
-                                    50,
-                                    reset_control_change,
-                                    (0, 0),
-                                    (192, 192, 192),
-                                    (0, 0, 0),
-                                    5
-                                )
-                            )
-                            if self.tts:
-                                self.speak(self.editing_controls[self.control_edit].args[match])
             for button in self.buttons[3:]:
                 button.rect.center = (0, 180 * 5)
             pos = pygame.mouse.get_pos()
@@ -472,16 +408,3 @@ class Options(Utility):
             control.button_index = None
         if self.place == "refresh":
             self.place = "options"
-
-
-def get_first_match(substring: str, strings: list[str]) -> Union[int, None]:
-    """
-    finds first string in a list with a matching substring
-    :param substring: searching for
-    :param strings: searching through
-    :return: first instance
-    """
-    for i, string in enumerate(strings):
-        if substring in string:
-            return i
-    return None

@@ -2,7 +2,7 @@
 sets constants for the program
 """
 import pygame
-from os import listdir
+from safe_paths import safe_listdir
 from skin_management import decode_skin, Skin
 from dataclasses import dataclass
 from typing import Union, Any
@@ -43,7 +43,7 @@ DEFAULT_SKINS: dict[str, Skin] = {
 
 }
 
-EASTER_EGG_LEVELS: tuple[str, ...] = tuple(sorted(c_lvl[:-4] for c_lvl in listdir("easter_eggs")))
+EASTER_EGG_LEVELS: tuple[str, ...] = tuple(sorted(c_lvl[:-4] for c_lvl in safe_listdir("easter_eggs")))
 SKIN_LIST: tuple[str, ...] = tuple(sorted(DEFAULT_SKINS.keys()))
 
 
