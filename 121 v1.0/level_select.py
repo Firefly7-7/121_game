@@ -5,7 +5,8 @@ contains class for level select area
 from level_management import unpack_level, decode_safety_wrap, save_level, encode_level_to_string
 from utility import Utility, LEVEL_LIST
 from pyperclip import paste, copy
-from os import listdir, remove
+from os import remove
+from safe_paths import safe_listdir
 from pygame import Surface
 from pygame.draw import lines
 from pygame.transform import rotate
@@ -349,6 +350,8 @@ class LevelSelect(Utility):
             deletes a level from the custom level directory
             :return: nothing
             """
+            if len(self.levels[1]) == 0:
+                return
             del_lvl = self.levels[1].pop(self.look_at[1])
             remove(f"custom_levels/{del_lvl[0]}.txt")
             if self.look_at[1] > 0:
@@ -431,7 +434,7 @@ class LevelSelect(Utility):
         get_level()
         while self.place == "level_select":
             self.tick()
-            for lvl in [(c_lvl[:-4], False) for c_lvl in listdir("custom_levels")]:
+            for lvl in [(c_lvl[:-4], False) for c_lvl in safe_listdir("custom_levels")]:
                 if lvl[0] not in [level[0] for level in self.levels[1]]:
                     self.levels[1].append(lvl)
                     get_level()
