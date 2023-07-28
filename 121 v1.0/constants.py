@@ -142,7 +142,7 @@ BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Bloc
 BARRIERS: tuple[BlockType, ...] = (Blocks.ground, Blocks.lava, Blocks.repel, Blocks.mud, Blocks.sticky, Blocks.air, Blocks.ice, Blocks.goal, Blocks.bouncy)
 
 # noinspection IncorrectFormatting
-WORKING_BLOCK_LIST: list[[BlockType]] = [None, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer]
+WORKING_BLOCK_LIST: list[[BlockType]] = [Blocks.air, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer]
 
 # for construction
 # noinspection IncorrectFormatting
@@ -244,7 +244,7 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
         (Blocks.destroyer.destroy_link, "Destroy Link", FieldType.boolean, True, {}),
         (Blocks.destroyer.destroy_barriers, "Destroy Barriers", FieldType.iterator, 1, {}, 0, 3, 1, ("None", "All", "Top")),
         (Blocks.destroyer.destroy_block, "Destroy Block", FieldType.boolean, True, {}),
-        (Blocks.destroyer.match_block, "Match Block", FieldType.list, False, {}, tuple([False] + WORKING_BLOCK_LIST))
+        (Blocks.destroyer.match_block, "Match Block", FieldType.list, False, {}, tuple([False] + WORKING_BLOCK_LIST), {False: "Don't check", **{block: block.name for block in WORKING_BLOCK_LIST}})
     ],
     Blocks.rotator: [
         (Blocks.rotator.rotation, "Direction", FieldType.iterator, 0, {}, 0, 4, 1, ("Up", "Right", "Down", "Left")),

@@ -589,7 +589,7 @@ class BlockEditing(ParentConstructionArea):
                 y += 6 + max(on_field[0].rect.height, on_field[2].rect.height)
             elif field_type == FieldType.list:
                 if len(args) > 1:
-                    display = args[0][value]
+                    display = args[1][value]
                 else:
                     display = value
                 on_field.add_button(ParentConstructionArea.game_object.make_text_button(
@@ -697,7 +697,8 @@ class BlockEditing(ParentConstructionArea):
             for block_prune_info in BLOCK_CONSTRUCTION[BlockEditing.editing_block]:
                 for check_field, check_condition in block_prune_info[4]:
                     if BlockEditing.editing_block_fields[BlockEditing.editing_block][check_field] not in check_condition:
-                        del other[block_prune_info[0]]
+                        if len(other) > block_prune_info[0]:
+                            other[block_prune_info[0]] = None
                         break
             if mouse_coords in ParentConstructionArea.game_object.level_data.level_on.blocks:
                 ParentConstructionArea.game_object.level_data.level_on.blocks[mouse_coords].type = BlockEditing.editing_block
