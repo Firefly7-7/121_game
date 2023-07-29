@@ -700,6 +700,14 @@ class LevelWrap:
         except:
             return Blocks.error_block.render([], 0, font, scale)
 
+    def rename(self, name: str):
+        """
+        renames level
+        :param name: new name
+        :return:
+        """
+        self.level_on.name = name
+
 
 def position_correction(
         block_coords: tuple[int, int],

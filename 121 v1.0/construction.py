@@ -164,6 +164,7 @@ class Construction(Utility):
                 ],
                 "max_line_pixels": 240 * 6,
                 "max_width": 512,
+                "callback": self.level_data.rename
             }
 
         def update_game_image() -> None:
