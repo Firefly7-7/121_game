@@ -1148,7 +1148,7 @@ class FragileGround(AdvancedSolid):
     @staticmethod
     def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
                                 new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
-                                force: bool) -> None:
+                                force: float) -> None:
         """
         does post-correction collision calculations.  Abstract.
         :param check:
@@ -1159,7 +1159,7 @@ class FragileGround(AdvancedSolid):
         :param pre_collision_momentum:
         :return:
         """
-        if not FragileGround.determine_activate(force, True, check.other[FragileGround.sturdiness]):
+        if FragileGround.determine_activate(abs(pre_collision_momentum[(check.direction + 1) % 2]), True, check.other[FragileGround.sturdiness]):
             block = level.blocks[check.coordinates]
             block.type = Air
             if check.other[FragileGround.remove_barriers]:
