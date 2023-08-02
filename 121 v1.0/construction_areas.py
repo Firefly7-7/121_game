@@ -68,6 +68,7 @@ class ParentConstructionArea(ABC):
         ParentConstructionArea.construction_center = round(240 * 3 + ParentConstructionArea.display_width / 4)
         ParentConstructionArea.game_object = game_object
 
+        ParentConstructionArea.name_buttons.clear()
         ParentConstructionArea.name_buttons.add_button(None)
         # 6.0.1-2: construction area iter buttons
         ParentConstructionArea.name_buttons.add_button(ParentConstructionArea.game_object.make_text_button(
