@@ -4,6 +4,7 @@ player data class
 from dataclasses import dataclass
 from typing import Union
 from json import dumps, loads
+from safe_paths import getpath
 from zlib import decompress
 from level_management import VERSION
 from constants import NAME, PATH, DEFAULT_SKINS
@@ -63,7 +64,7 @@ def load_player_data(name: str = NAME, prepend: str = PATH, typ: str = ".dat") -
     """
     # print("Loading player data")
     player_data = empty_player_data()
-    with open(f"{prepend}{name}{typ}", "rb") as file:
+    with open(getpath(f"{prepend}{name}{typ}"), "rb") as file:
         read = file.read()
         # noinspection PyBroadException
         try:
@@ -101,5 +102,5 @@ def save_player_data(player_data: PlayerData, name: str = NAME, prepend: str = P
     ]
     player_data.achievements = list(player_data.achievements)
     save = bytes(dumps(player_data.__dict__), "utf-8")
-    with open(f"{prepend}{name}{typ}", "wb") as file:
+    with open(getpath(f"{prepend}{name}{typ}"), "wb") as file:
         file.write(save)
