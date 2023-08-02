@@ -14,7 +14,7 @@ from block_data import Blocks, BlockType
 KEY_CONSTANTS: tuple[int, ...] = (pygame.K_BACKSPACE, pygame.K_TAB, pygame.K_CLEAR, pygame.K_RETURN, pygame.K_PAUSE, pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_EXCLAIM, pygame.K_QUOTEDBL, pygame.K_HASH, pygame.K_DOLLAR, pygame.K_AMPERSAND, pygame.K_QUOTE, pygame.K_LEFTPAREN, pygame.K_RIGHTPAREN, pygame.K_ASTERISK, pygame.K_PLUS, pygame.K_COMMA, pygame.K_MINUS, pygame.K_PERIOD, pygame.K_SLASH, pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_COLON, pygame.K_SEMICOLON, pygame.K_LESS, pygame.K_EQUALS, pygame.K_GREATER, pygame.K_QUESTION, pygame.K_AT, pygame.K_LEFTBRACKET, pygame.K_BACKSLASH, pygame.K_RIGHTBRACKET, pygame.K_CARET, pygame.K_UNDERSCORE, pygame.K_BACKQUOTE, pygame.K_a, pygame.K_b, pygame.K_c, pygame.K_d, pygame.K_e, pygame.K_f, pygame.K_g, pygame.K_h, pygame.K_i, pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_m, pygame.K_n, pygame.K_o, pygame.K_p, pygame.K_q, pygame.K_r, pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y, pygame.K_z, pygame.K_DELETE, pygame.K_KP0, pygame.K_KP1, pygame.K_KP2, pygame.K_KP3, pygame.K_KP4, pygame.K_KP5, pygame.K_KP6, pygame.K_KP7, pygame.K_KP8, pygame.K_KP9, pygame.K_KP_PERIOD, pygame.K_KP_DIVIDE, pygame.K_KP_MULTIPLY, pygame.K_KP_MINUS, pygame.K_KP_PLUS, pygame.K_KP_ENTER, pygame.K_KP_EQUALS, pygame.K_UP, pygame.K_DOWN, pygame.K_RIGHT, pygame.K_LEFT, pygame.K_INSERT, pygame.K_HOME, pygame.K_END, pygame.K_PAGEUP, pygame.K_PAGEDOWN, pygame.K_F1, pygame.K_F2, pygame.K_F3, pygame.K_F4, pygame.K_F5, pygame.K_F6, pygame.K_F7, pygame.K_F8, pygame.K_F9, pygame.K_F10, pygame.K_F11, pygame.K_F12, pygame.K_F13, pygame.K_F14, pygame.K_F15, pygame.K_NUMLOCK, pygame.K_CAPSLOCK, pygame.K_SCROLLOCK, pygame.K_RSHIFT, pygame.K_LSHIFT, pygame.K_RCTRL, pygame.K_LCTRL, pygame.K_RALT, pygame.K_LALT, pygame.K_RMETA, pygame.K_LMETA, pygame.K_LSUPER, pygame.K_RSUPER, pygame.K_MODE, pygame.K_HELP, pygame.K_PRINT, pygame.K_SYSREQ, pygame.K_BREAK, pygame.K_MENU, pygame.K_POWER, pygame.K_EURO, pygame.K_AC_BACK)
 
 # for level and player data saving (change... I think?  Sometime.)
-VERSION: int = 4
+VERSION: int = 5
 
 # for level saving, new code every update (probably use randomizer on previous one)
 # noinspection SpellCheckingInspection
@@ -226,7 +226,7 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
     Blocks.bouncy: [],
     Blocks.ice: [],
     Blocks.portal: [
-        (Blocks.portal.relative, "Relative Positioning", FieldType.boolean, False, {}),
+        (Blocks.portal.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 2, 1, ("Screen", "Player", "Portal")),
         (Blocks.portal.x, "X", FieldType.freeform_num, 0, {}, -11, 12, 1),
         (Blocks.portal.y, "Y", FieldType.freeform_num, 0, {}, -11, 12, 1),
         (Blocks.portal.reflect_x, "Reflect X Momentum", FieldType.boolean, False, {}),
@@ -368,7 +368,7 @@ SAVE_CODE: dict[str, dict[BlockType, dict[SavingFieldGroups, list[tuple[int, Any
         },
         Blocks.destroyer: {
             SavingFieldGroups.string_to_number: [
-                (Blocks.destroyer.match_block, [False] + WORKING_BLOCK_LIST)
+                (Blocks.destroyer.match_block, [False, Blocks.air, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer])
             ],
             SavingFieldGroups.number: [
                 (Blocks.destroyer.grav_locked, 1, 0, False),
@@ -391,72 +391,14 @@ SAVE_CODE: dict[str, dict[BlockType, dict[SavingFieldGroups, list[tuple[int, Any
         }
     },
     "5": {
-        Blocks.jump: {
-            SavingFieldGroups.number: [
-                (Blocks.jump.grav_locked, 1, 0, False),
-                (Blocks.jump.rotation, 3, 0, False)
-            ],
-        },
-        Blocks.gravity: {
-            SavingFieldGroups.string_to_number: [
-                (Blocks.gravity.type, ["direction", "set"])
-            ],
-            SavingFieldGroups.number: [
-                (Blocks.gravity.grav_locked, 1, 0, True),
-                (Blocks.gravity.rotation, 3, 0, True),
-                (Blocks.gravity.mode, 4, 0, True),
-                (Blocks.gravity.variable_value, 2.5, 0, True, 4)
-            ]
-        },
-        Blocks.easter_egg: {
-            SavingFieldGroups.string_to_number: [
-                (Blocks.easter_egg.type, ["level", "achievement", "skin"])
-            ],
-            SavingFieldGroups.string: [
-                (Blocks.easter_egg.level, Blocks.easter_egg.type, "level"),
-                (Blocks.easter_egg.achievement, Blocks.easter_egg.type, "achievement"),
-                (Blocks.easter_egg.skin, Blocks.easter_egg.type, "skin")
-            ]
-        },
-        Blocks.achievement_goal: {
-            SavingFieldGroups.string: [
-                (Blocks.achievement_goal.achievement, None)
-            ]
-        },
-        Blocks.repel: {
-            SavingFieldGroups.number: [
-                (Blocks.repel.mode, 1, 0, False)
-            ]
-        },
-        Blocks.activator: {
-            SavingFieldGroups.number: [
-                (Blocks.activator.delay, 24.75, 0, False, 4),
-                (Blocks.activator.grav_locked, 1, 0, False),
-                (Blocks.activator.rotation, 3, 0, False)
-            ]
-        },
-        Blocks.msg: {
-            SavingFieldGroups.string: [
-                (Blocks.msg.text, None)
-            ]
-        },
         Blocks.portal: {
-            SavingFieldGroups.freeform_num: [
-                (Blocks.portal.x, 1),
-                (Blocks.portal.y, 1),
-            ],
             SavingFieldGroups.number: [
-                (Blocks.portal.relative, 1, 0, False),
+                (Blocks.portal.relative, 2, 0, False),
+                (Blocks.portal.x, 11, -11, False),
+                (Blocks.portal.y, 11, -11, False),
                 (Blocks.portal.reflect_x, 1, 0, False),
                 (Blocks.portal.reflect_y, 1, 0, False),
                 (Blocks.portal.rotation, 3, 0, True)
-            ]
-        },
-        Blocks.fragile_ground: {
-            SavingFieldGroups.number: [
-                (Blocks.fragile_ground.sturdiness, 30, 0, False),
-                (Blocks.fragile_ground.remove_barriers, 1, 0, False),
-                (Blocks.fragile_ground.remove_link, 1, 0, False),
             ]
         },
         Blocks.destroyer: {
@@ -469,17 +411,6 @@ SAVE_CODE: dict[str, dict[BlockType, dict[SavingFieldGroups, list[tuple[int, Any
                 (Blocks.destroyer.destroy_link, 1, 0, False),
                 (Blocks.destroyer.destroy_barriers, 2, 0, False),
                 (Blocks.destroyer.destroy_block, 1, 0, False)
-            ]
-        },
-        Blocks.rotator: {
-            SavingFieldGroups.number: [
-                (Blocks.rotator.rotation, 3, 0, False),
-                (Blocks.rotator.grav_locked, 1, 0, False),
-                (Blocks.rotator.mode, 1, 0, False),
-                (Blocks.rotator.variable_value, 3, 0, False),
-                (Blocks.rotator.rotate_block, 1, 0, False),
-                (Blocks.rotator.rotate_barriers, 1, 0, False),
-                (Blocks.rotator.grav_account, 1, 0, True)
             ]
         }
     }

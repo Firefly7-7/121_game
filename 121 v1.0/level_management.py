@@ -12,6 +12,7 @@ from constants import VERSION, ADDED_DEFAULT_UPDATE_BLOCK_ATTRIBUTES, LETTER_COD
 from safe_paths import getpath
 import traceback
 
+
 def make_blank_level() -> Level:
     """
     creates empty level
@@ -151,7 +152,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         """
         point = start
         length_indicator = 0
-        if string[point] == letter_code[0]:
+        if string[point] == letter_code[100]:
             point += 1
             for rep3 in range(prev):
                 length_indicator = 100 * length_indicator + letter_code.index(string[point])
@@ -257,7 +258,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                 block_data,
                 list(),
                 players,
-                (x, y),
                 1
             )
         else:
@@ -381,7 +381,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             blocks,
             links,
             players,
-            (x, y),
             2
         )
     elif level_string[0] == "3":
@@ -525,7 +524,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             blocks,
             links,
             players,
-            (x, y),
             3
         )
     elif level_string[0] == "4":
@@ -541,7 +539,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             {},
             [],
             [],
-            (x, y),
             4
         )
         # print(level.name, len(level_string), level.gravity)  # correct
@@ -649,6 +646,156 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         #     level.blocks[(1, 1)] = level.blocks.pop((10, 0))
         # print(level.blocks.keys())
         return level
+    elif level_string[0] == "5":
+        save_code = SAVE_CODE["4"]
+        save_code.update(SAVE_CODE["5"])
+        i1 = 3 + letter_code.index(level_string[1])
+        # gets max length
+        i1, x_l = decode_length_indicator(i1)
+        i1, y_l = decode_length_indicator(i1)
+        level = Level(
+            level_string[2:3 + letter_code.index(level_string[1])],
+            (letter_code.index(level_string[i1]),
+             letter_code.index(level_string[i1 + 1]) * -0.25),
+            {},
+            [],
+            [],
+            5
+        )
+        i1, players = decode_length_indicator(i1 + 2)  # find number of players
+        for p in range(players):
+            x = 1
+            if level_string[i1] == "-":
+                x = -1
+                i1 += 1
+            x *= convert_from_b100(level_string[i1:i1 + x_l])
+            i1 += x_l
+            y = 1
+            if level_string[i1] == "-":
+                y = -1
+                i1 += 1
+            y *= convert_from_b100(level_string[i1:i1 + y_l])
+            i1 += y_l
+            level.player_starts.append((x, y))
+        i1, blocks = decode_length_indicator(i1)
+        for i2 in range(blocks):  # repeat for number of unique blocks
+            i1, block_type_index = decode_length_indicator(i1)
+            block = Block(
+                BLOCKS[block_type_index],  # find block type
+                [],
+                []
+            )
+            i1, barrier_layers = decode_length_indicator(i1)
+            for i3 in range(barrier_layers):  # find number of barriers
+                i1, barrier_index = decode_length_indicator(i1)
+                # print(letter_code.index(level_string[i1 - 1]))
+                barrier_number = letter_code.index(level_string[i1])
+                # print(level_string[i1])
+                # print(barrier_number % 32)
+                block.barriers.append((
+                    BARRIERS[barrier_index],
+                    barrier_number % 2 == 1,
+                    (
+                        barrier_number // 2 % 2 == 1,
+                        barrier_number // 4 % 2 == 1,
+                        barrier_number // 8 % 2 == 1,
+                        barrier_number // 16 % 2 == 1
+                    )
+                ))
+                i1 += 1
+            attributes = list()  # finds number of attributes
+            if block.type in save_code:
+                length = max_info_number_length(save_code[block.type])
+                if length > 0:  # check to make sure any of the following is necessary
+                    if SavingFieldGroups.string_to_number in save_code[block.type]:
+                        for stn in save_code[block.type][SavingFieldGroups.string_to_number]:  # loops through string to number types
+                            attributes.append(len(stn[1]))
+                    if SavingFieldGroups.number in save_code[block.type]:
+                        for n in save_code[block.type][SavingFieldGroups.number]:
+                            times = 1
+                            if len(n) == 5:
+                                times = n[4]
+                            attributes.append((n[1] - n[2]) * times + 1 + n[3])
+                        del times
+                    # print(f"Numerical attributes on {block.type}")
+                    # i1 += 1
+                    other_value = convert_from_b100(level_string[i1:i1 + length])
+                    i1 += length
+                    # print(letter_code.index(level_string[i1 - 1]), [letter_code.index(char) for char in level_string[i1 - 5:]])
+                    cumulative = 1
+                    i4 = -1
+                    if SavingFieldGroups.string_to_number in save_code[block.type]:
+                        for stn in save_code[block.type][SavingFieldGroups.string_to_number]:  # loops through string to number types
+                            i4 += 1
+                            set_field(stn[0], block.other, stn[1][int(other_value // cumulative) % attributes[i4]])
+                            cumulative *= attributes[i4]
+                    if SavingFieldGroups.number in save_code[block.type]:
+                        for n in save_code[block.type][SavingFieldGroups.number]:
+                            i4 += 1
+                            if len(n) == 5:
+                                if not n[3] or other_value // cumulative % attributes[i4] != attributes[i4] - 1:
+                                    set_field(n[0], block.other, (int(other_value // cumulative) % attributes[i4]) / n[4] + n[2])
+                            else:
+                                if not n[3] or other_value // cumulative % attributes[i4] != attributes[i4] - 1:
+                                    set_field(n[0], block.other, (int(other_value // cumulative) % attributes[i4]) + n[2])
+                            cumulative *= attributes[i4]
+                if SavingFieldGroups.string in save_code[block.type]:
+                    # print("retrieving string fields")
+                    for s in save_code[block.type][SavingFieldGroups.string]:
+                        if s[1] is not None and block.other[s[1]] != s[2]:
+                            # print("text field continued")
+                            continue
+                        i1 += 1
+                        # print(i1, level_string[i1:i1 + 2], convert_from_b100(level_string[i1:i1 + 2]))
+                        set_field(s[0], block.other, level_string[i1 + 2: i1 + convert_from_b100(level_string[i1:i1 + 2]) + 2])
+                        i1 += convert_from_b100(level_string[i1:i1 + 2])
+                    i1 += 1
+            # i1 -= 1
+            i1, reps = decode_length_indicator(i1)
+            # print(block.type, block.other)
+            # print("Number of blocks:", convert_from_b100(level_string[i1:i1 + 2:1]) + 1)
+            # print("Number of blocks (shift -1):", convert_from_b100(level_string[i1-1:i1 + 1:1]) + 1)
+            # print("Number of blocks (shift +1):", convert_from_b100(level_string[i1+1:i1 + 3:1]) + 1)
+            for i5 in range(reps):
+                # print(level_string[i1], level_string[i1 + 1])
+                x = 1
+                if level_string[i1] == "-":
+                    x = -1
+                    i1 += 1
+                x *= convert_from_b100(level_string[i1:i1 + x_l])
+                i1 += x_l
+                y = 1
+                if level_string[i1] == "-":
+                    y = -1
+                    i1 += 1
+                y *= convert_from_b100(level_string[i1:i1 + y_l])
+                i1 += y_l
+                level.blocks[(x, y)] = deepcopy(
+                    block
+                )
+        # print(letter_code.index(level_string[i1]), i1 == len(level_string) - 1)
+        i1 += 1
+        for i5 in range(letter_code.index(level_string[i1 - 1])):
+            level.links.append([])
+            i1, num_links = decode_length_indicator(i1)
+            for i6 in range(num_links):
+                x = 1
+                if level_string[i1] == "-":
+                    x = -1
+                    i1 += 1
+                x *= convert_from_b100(level_string[i1:i1 + x_l])
+                i1 += x_l
+                y = 1
+                if level_string[i1] == "-":
+                    y = -1
+                    i1 += 1
+                y *= convert_from_b100(level_string[i1:i1 + y_l])
+                i1 += y_l
+                level.links[-1].append((x, y))
+        # if (10, 0) in level.blocks:
+        #     level.blocks[(1, 1)] = level.blocks.pop((10, 0))
+        # print(level.blocks.keys())
+        return level
     else:
         return TypeError("Level code does not start with a valid version indicator. (might be invalid code or game version might be out of date)")
 
@@ -671,11 +818,26 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
         else:
             i += 1
 
-    def convert_to_b100(num: int, required_length: int = None) -> str:
+    def required_length(num: int) -> int:
+        """
+        finds minimum required length for an input in b100
+        :param num:
+        :return:
+        """
+        if num < 0:
+            return required_length(abs(num))
+        res = 0
+        digit = 1
+        while num >= digit:
+            digit *= 100
+            res += 1
+        return res
+
+    def convert_to_b100(num: int, req_length: int = None) -> str:
         """
         converts to b100 with letter_code
         :param num: integer to convert
-        :param required_length: length the number needs to be for code to work
+        :param req_length: length the number needs to be for code to work
         :return: string representation
         """
         digit = 1
@@ -683,35 +845,61 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
         while num >= digit:
             string += letter_code[(num // digit) % 100]
             digit *= 100  # look, misnomer, k?  But means the same thing and made the first part easier
-        if required_length is None:
+        if req_length is None:
             res = string
-        elif len(string) > required_length:
+        elif len(string) > req_length:
             raise OverflowError(
-                f"b100 conversion exceeded max length ({required_length}, {100 ** required_length - 1})"
+                f"b100 conversion exceeded max length (max length: {req_length}, max value: {100 ** (req_length - 1)}, result length: {len(string)}, input value: {num})"
             )
         else:
-            res = string + letter_code[0] * (required_length - len(string))
-            # print(len(res), required_length)
+            res = string + letter_code[0] * (req_length - len(string))
+            # print(len(res), req_length)
         return res[::1]
 
-    level_string = "4"  # version indicator
+    def make_length_indicator(num: int) -> str:
+        """
+        generates a length indicator for the string
+        :param num:
+        :return:
+        """
+        res = convert_to_b100(num)
+        if num == 0:
+            res = letter_code[0]
+        if len(res) > 1:
+            res = letter_code[100] + make_length_indicator(len(res)) + res
+        return res
+
+    level_string = "5"  # version indicator
     letter_code = LETTER_CODES[level_string]
-    save_code = SAVE_CODE.get(level_string, {})
+    save_code = SAVE_CODE.get("4", {})
+    save_code.update(SAVE_CODE.get("5", {}))
     level_string += letter_code[len(level_data.name) - 1] + level_data.name  # saves level name
-    level_string += letter_code[level_data.dimensions[0]] + letter_code[level_data.dimensions[1]]  # saves level dimensions
+    x_l = 0
+    y_l = 0
+    for coords in level_data.blocks:
+        x_l = max(x_l, required_length(coords[0]))
+        y_l = max(y_l, required_length(coords[1]))
+    for coords in level_data.player_starts:
+        x_l = max(x_l, required_length(coords[0]))
+        y_l = max(y_l, required_length(coords[1]))
+    for links in level_data.links:
+        for coords in links:
+            x_l = max(x_l, required_length(coords[0]))
+            y_l = max(y_l, required_length(coords[1]))
+    level_string += make_length_indicator(x_l) + make_length_indicator(y_l)
     level_string += letter_code[level_data.gravity[0]] + letter_code[int(level_data.gravity[1] * -4)]  # saves gravity info
-    level_string += letter_code[len(level_data.player_starts)]  # indicator for # of players
+    level_string += make_length_indicator(len(level_data.player_starts))  # indicator for # of players
     for player in level_data.player_starts:
-        level_string += letter_code[player[0]] + letter_code[player[1]]  # saves indidual player starts
+        level_string += convert_to_b100(player[0], x_l) + convert_to_b100(player[1], y_l)  # saves indidual player starts
     block_saves = dict()
     for coordinates, block in level_data.blocks.items():  # loops through block items in block save, makes save code
         if block.type == Blocks.air and block.barriers == [] and block.link is None:
             continue
         specific_save = ""
-        specific_save += letter_code[BLOCKS.index(block.type)]  # adds type indicator to specific save
-        specific_save += letter_code[len(block.barriers)]  # adds indicator for number of barriers
+        specific_save += make_length_indicator(BLOCKS.index(block.type))  # adds type indicator to specific save
+        specific_save += make_length_indicator(len(block.barriers))  # adds indicator for number of barriers
         for barrier in block.barriers:  # adds barriers to the specific save
-            specific_save += letter_code[BARRIERS.index(barrier[0])]
+            specific_save += make_length_indicator(BARRIERS.index(barrier[0]))
             specific_save += letter_code[barrier[1] + barrier[2][0] * 2 + barrier[2][1] * 4 + barrier[2][2] * 8 + barrier[2][3] * 16]
         attributes = list()  # format: [multiplicatory, value]
         if block.type in save_code:
@@ -751,20 +939,20 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
             block_saves[specific_save].append(coordinates)
         else:
             block_saves[specific_save] = [coordinates]  # add for multiple
-    level_string += convert_to_b100(len(block_saves), 2)  # number of unique block saves
+    level_string += make_length_indicator(len(block_saves))  # number of unique block saves
     for block_save, coordinates in block_saves.items():  # goes through block save and coordinate lists
         # print(BLOCKS[letter_code.index(block_save[0])], len(coordinates))
         level_string += block_save  # adds block save code to string
-        level_string += convert_to_b100(len(coordinates), 2)  # indicator for how many blocks
+        level_string += make_length_indicator(len(coordinates))  # indicator for how many blocks
         # print(convert_to_b100(len(coordinates), 2))
         for coordinate in coordinates:  # loops and adds coordinates
-            level_string += letter_code[coordinate[0]] + letter_code[coordinate[1]]
+            level_string += convert_to_b100(coordinate[0], x_l) + convert_to_b100(coordinate[1], y_l)
     level_string += letter_code[len(level_data.links)]  # adds indicator for number of types of links
     # print(len(level_data.links))
     for link_data in level_data.links:  # loops through types of links
-        level_string += letter_code[len(link_data)]  # indicator for number of specific type of link
+        level_string += make_length_indicator(len(link_data))  # indicator for number of specific type of link
         for link in link_data:  # loops through and adds link coordinates
-            level_string += letter_code[link[0]] + letter_code[link[1]]
+            level_string += convert_to_b100(link[0], x_l) + convert_to_b100(link[1], y_l)
     if level_data.next is None:
         return level_string
     else:

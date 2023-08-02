@@ -36,7 +36,6 @@ class Level:
     blocks: dict[tuple[int, int], Block]
     links: list[list[tuple[int, int]]]
     player_starts: list[tuple[int, int]]
-    dimensions: tuple[int, int] = (11, 11)
     version: int = 4
     next: Union[None, Level] = None
 
@@ -631,7 +630,6 @@ class LevelWrap:
         :param player_imgs: list of player images corresponding to gravity direction
         :return:
         """
-        # print(dimensions)
         drawn = Surface((11 * scale + floor(scale / 20), 11 * scale + floor(scale / 20)))
         drawn.fill((255, 255, 255))
         for coordinates, block in self.blocks.items():

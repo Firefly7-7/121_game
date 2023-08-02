@@ -33,7 +33,7 @@ def update_player_data(player_data) -> PlayerData:
     :return:
     """
     res = empty_player_data()
-    for attr, val in player_data.__dict__:
+    for attr, val in player_data.__dict__.items():
         setattr(res, attr, val)
     return res
 

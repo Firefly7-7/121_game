@@ -46,7 +46,7 @@ class Construction(Utility):
             if self.typing.typing and self.typing.button_target == 2:
                 self.level_data.level_on.name = self.typing.text
                 self.end_typing()
-            else:
+            elif isinstance(self.level_data, LevelWrap):
                 self.level_data.level_on.name = self.buttons[2][0].text
             save_current_editing()
             load_editing_level(index)
@@ -129,6 +129,19 @@ class Construction(Utility):
                     (0.5, 0.5),
                     outline_width=5
                 )
+                name_button_obj.arguments = {
+                    "button_obj": name_button_obj,
+                    "font": 75,
+                    "max_characters": 100,
+                    "min_characters": 2,
+                    "others": [
+                        (level_name_control_buttons[1], -0.5, 0, -40, 0),
+                        (level_name_control_buttons[2], 0.5, 0, 40, 0)
+                    ],
+                    "max_line_pixels": 240 * 6,
+                    "max_width": 512,
+                    "callback": self.level_data.rename
+                }
             level_name_control_buttons[0] = name_button_obj
 
             if self.constructing == 0:
@@ -153,19 +166,6 @@ class Construction(Utility):
                 override_text="Add new work in progress level." if self.constructing == len(
                     self.working_on) else "Next work in progress level."
             )
-            name_button_obj.arguments = {
-                "button_obj": name_button_obj,
-                "font": 75,
-                "max_characters": 100,
-                "min_characters": 2,
-                "others": [
-                    (level_name_control_buttons[1], -0.5, 0, -40, 0),
-                    (level_name_control_buttons[2], 0.5, 0, 40, 0)
-                ],
-                "max_line_pixels": 240 * 6,
-                "max_width": 512,
-                "callback": self.level_data.rename
-            }
 
         def update_game_image() -> None:
             """
@@ -338,32 +338,35 @@ class Construction(Utility):
         while self.place == "construction":
             self.tick()
             # handle clicks
-            mouse_pos = get_pos()
-            if abs(mouse_pos[0] - 240 * 2) < self.level_display.get_width() / 2 - 2 and abs(
-                    mouse_pos[1] - 180 * 2) < self.level_display.get_height() / 2 - 2:
-                mouse_coords = (
-                    round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5),
-                    round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5)
+            if isinstance(self.level_data, LevelWrap):
+                mouse_pos = get_pos()
+                if abs(mouse_pos[0] - 240 * 2) < self.level_display.get_width() / 2 - 2 and abs(
+                        mouse_pos[1] - 180 * 2) < self.level_display.get_height() / 2 - 2:
+                    mouse_coords = (
+                        round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5),
+                        round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5)
 
-                )
-            else:
-                mouse_coords = None
-            if get_pressed(3)[0]:
-                if mouse_down:
-                    click_tick = False
+                    )
                 else:
-                    mouse_down = True
-                    click_tick = True
-            else:
-                mouse_down = False
-            if click_tick and mouse_coords is not None:
-                ParentConstructionArea.click_tick(mouse_coords)
+                    mouse_coords = None
+                if get_pressed(3)[0]:
+                    if mouse_down:
+                        click_tick = False
+                    else:
+                        mouse_down = True
+                        click_tick = True
+                else:
+                    mouse_down = False
+                if click_tick and mouse_coords is not None:
+                    ParentConstructionArea.click_tick(mouse_coords)
 
             self.screen.blit(
                 self.level_display,
                 (240 * 2 - self.level_display.get_width() / 2, 180 * 2 - self.level_display.get_height() / 2)
             )
             # handle construction screen specific visual changes
-            ParentConstructionArea.tick(mouse_pos, mouse_coords)
-        self.level_data.level_on.name = self.buttons[2][0].text
-        save_current_editing()
+            if isinstance(self.level_data, LevelWrap):
+                ParentConstructionArea.tick(mouse_pos, mouse_coords)
+        if isinstance(self.level_data, LevelWrap):
+            self.level_data.level_on.name = self.buttons[2][0].text
+            save_current_editing()

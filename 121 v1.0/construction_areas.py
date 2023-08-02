@@ -731,8 +731,8 @@ class BlockEditing(ParentConstructionArea):
                     40
                 ),
                 (
-                    240 * 2 - ParentConstructionArea.game_object.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                    180 * 2 + ParentConstructionArea.game_object.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
+                    240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
+                    180 * 2 + 11 * 20 - mouse_coords[1] * 40
                 )
             )
 
@@ -920,8 +920,8 @@ class BarrierEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - BarrierEditing.game_object.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + BarrierEditing.game_object.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
                     )
                 )
             else:
@@ -938,8 +938,8 @@ class BarrierEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - BarrierEditing.game_object.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + BarrierEditing.game_object.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
                     )
                 )
 
@@ -1125,8 +1125,8 @@ class LinkEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - LinkEditing.game_object.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + LinkEditing.game_object.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
                     )
                 )
             elif LinkEditing.editing_link[0] == "Place":
@@ -1141,7 +1141,7 @@ class LinkEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - LinkEditing.game_object.level_data.level_on.dimensions[0] * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + LinkEditing.game_object.level_data.level_on.dimensions[1] * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
                     )
                 )
