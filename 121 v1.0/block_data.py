@@ -297,6 +297,10 @@ class AdvancedSolid(BlockType, ABC):
     reverse: bool = False
 
     @staticmethod
+    def determine_activate(force: float, local: bool, bound: float = 3):
+        return (not local) or (force > bound)
+
+    @staticmethod
     @abstractmethod
     def post_correction_collide(
             check: Collision,
@@ -305,7 +309,7 @@ class AdvancedSolid(BlockType, ABC):
             gravity: list[int, float],
             new_scheduled: dict[tuple[int, int], tuple[int, int]],
             pre_collision_momentum: tuple,
-            activate: bool
+            force: float
     ) -> None:
         """
         does post-correction collision calculations.  Abstract.
@@ -315,7 +319,7 @@ class AdvancedSolid(BlockType, ABC):
         :param gravity:
         :param new_scheduled:
         :param pre_collision_momentum:
-        :param activate:
+        :param force:
         :return:
         """
 
@@ -341,7 +345,7 @@ class AdvancedSolid(BlockType, ABC):
         if cls.reverse:
             collision_list = collision_list.__reversed__()
         for check in collision_list:
-            activate = not check.local or abs(player.mom[(check.direction + 1) % 2]) > 3
+            force = abs(player.mom[(check.direction + 1) % 2])
             if check.local and not player.corrected:
                 player.stop = True
                 position_correction(
@@ -352,7 +356,73 @@ class AdvancedSolid(BlockType, ABC):
                 if level.gravity[0] == check.direction:
                     player.grounded = True
                 player.corrected = False
-            cls.post_correction_collide(check, level, player, gravity, new_scheduled, pre_collision_momentum, activate)
+            cls.post_correction_collide(check, level, player, gravity, new_scheduled, pre_collision_momentum, force)
+
+
+class RotationChooseBlock(AdvancedSolid, PointedBlock):
+    """
+    based on a pointed block's rotation and position, finds the block to edit.
+    """
+
+    @staticmethod
+    @abstractmethod
+    def given_block(
+            check: Collision,
+            level: Wrap,
+            player: IGP,
+            gravity: list[int, float],
+            new_scheduled: dict[tuple[int, int], tuple[int, int]],
+            pre_collision_momentum: tuple[int, int],
+            force: tuple,
+            block: Block,
+            coordinates: tuple[int, int]
+    ):
+        """
+        does collision checks after given a block
+        :param check:
+        :param level:
+        :param player:
+        :param gravity:
+        :param new_scheduled:
+        :param pre_collision_momentum:
+        :param force:
+        :param block:
+        :param coordinates:
+        :return:
+        """
+
+
+    @classmethod
+    def post_correction_collide(
+            cls,
+            check: Collision,
+            level: Wrap,
+            player: IGP,
+            gravity: list[int, float],
+            new_scheduled: dict[tuple[int, int], tuple[int, int]],
+            pre_collision_momentum: tuple[int, int],
+            force: tuple) -> None:
+        """
+        get block to edit
+        :param check:
+        :param level:
+        :param player:
+        :param gravity:
+        :param new_scheduled:
+        :param pre_collision_momentum:
+        :param force:
+        :return:
+        """
+        look = 3 * (check.other[cls.rotation] + (1 - check.other[cls.grav_locked]) *
+                    level.gravity[0] + 2) % 4
+        coordinates = (
+            check.coordinates[0] + sin(look),
+            check.coordinates[1] - cos(look)
+        )
+        block = level.blocks.get(coordinates, None)
+        if block is None:
+            return
+        cls.given_block(check, level, player, gravity, new_scheduled, pre_collision_momentum, force, block, coordinates)
 
 
 
@@ -560,15 +630,9 @@ class Bouncy(AdvancedSolid):
     collide_priority = 2.00
 
     @staticmethod
-    def post_correction_collide(
-            check: Collision,
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
+    def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
+                                new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
+                                force: bool) -> None:
         """
         colliding
         :param check: collision object to compute
@@ -577,7 +641,7 @@ class Bouncy(AdvancedSolid):
         :param gravity: gravity data to manipulate
         :param new_scheduled: newly scheduled block updates
         :param pre_collision_momentum:
-        :param activate:
+        :param force:
         :return: nada
         """
         match check.direction:
@@ -610,15 +674,9 @@ class Jump(PointedBlock, AdvancedSolid):
     collide_priority = 2.06
 
     @staticmethod
-    def post_correction_collide(
-            check: Collision,
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
+    def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
+                                new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
+                                force: bool) -> None:
         """
 
         :param check:
@@ -627,7 +685,7 @@ class Jump(PointedBlock, AdvancedSolid):
         :param gravity:
         :param new_scheduled:
         :param pre_collision_momentum:
-        :param activate:
+        :param force:
         :return:
         """
         if (check.other[Jump.rotation] + level.gravity[0] * (
@@ -680,15 +738,9 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
     collide_priority = 2.08
 
     @staticmethod
-    def post_correction_collide(
-            check: Collision,
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
+    def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
+                                new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
+                                force: bool) -> None:
         """
         does post-correction collision calculations.  Abstract.
         :param check:
@@ -697,38 +749,40 @@ class Gravity(PointedBlock, VariableValue, AdvancedSolid):
         :param gravity:
         :param new_scheduled:
         :param pre_collision_momentum:
+        :param force:
         :return:
         """
-        if activate:
-            if check.other[Gravity.type] == "direction":
-                gravity[0] = (3 * (check.other[Gravity.rotation] - (
-                        1 - check.other[Gravity.grav_locked]) *
-                                    level.gravity[0]) + 2) % 4
-            else:
-                match check.other[Gravity.mode]:
-                    case 0:
-                        gravity[1] = -1 * check.other[Gravity.variable_value]
-                    case 1:
-                        gravity[1] -= check.other[Gravity.variable_value]
+        if not Gravity.determine_activate(force, check.local):
+            return
+        if check.other[Gravity.type] == "direction":
+            gravity[0] = (3 * (check.other[Gravity.rotation] - (
+                    1 - check.other[Gravity.grav_locked]) *
+                                level.gravity[0]) + 2) % 4
+        else:
+            match check.other[Gravity.mode]:
+                case 0:
+                    gravity[1] = -1 * check.other[Gravity.variable_value]
+                case 1:
+                    gravity[1] -= check.other[Gravity.variable_value]
+                    if gravity[1] < -2.5:
+                        gravity[1] = -2.5
+                case 2:
+                    gravity[1] += check.other[Gravity.variable_value]
+                    if gravity[1] > 0:
+                        gravity[1] = 0
+                case 3:
+                    gravity[1] *= check.other[Gravity.variable_value]
+                    if gravity[1] < -2.5:
+                        gravity[1] = -2.5
+                case 4:
+                    if check.other[Gravity.variable_value] == 0:
+                        gravity[1] = -2.5
+                    else:
+                        gravity[1] /= check.other[Gravity.variable_value]
                         if gravity[1] < -2.5:
                             gravity[1] = -2.5
-                    case 2:
-                        gravity[1] += check.other[Gravity.variable_value]
-                        if gravity[1] > 0:
-                            gravity[1] = 0
-                    case 3:
-                        gravity[1] *= check.other[Gravity.variable_value]
-                        if gravity[1] < -2.5:
-                            gravity[1] = -2.5
-                    case 4:
-                        if check.other[Gravity.variable_value] == 0:
-                            gravity[1] = -2.5
-                        else:
-                            gravity[1] /= check.other[Gravity.variable_value]
-                            if gravity[1] < -2.5:
-                                gravity[1] = -2.5
-                    case _:
-                        print(check.other[Gravity.mode])
+                case _:
+                    print(check.other[Gravity.mode])
 
 
     @staticmethod
@@ -822,15 +876,9 @@ class Repel(AdvancedSolid):
     collide_priority = 2.07
 
     @staticmethod
-    def post_correction_collide(
-            check: Collision,
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
+    def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
+                                new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
+                                force: bool) -> None:
         """
         do post_position correction collision
         :param check:
@@ -888,7 +936,7 @@ class Repel(AdvancedSolid):
         return res
 
 
-class Activator(AdvancedSolid, PointedBlock):
+class Activator(RotationChooseBlock):
     """
     enum for activator block
     """
@@ -900,33 +948,19 @@ class Activator(AdvancedSolid, PointedBlock):
     collide_priority = 2.09
 
     @staticmethod
-    def post_correction_collide(
+    def given_block(
             check: Collision,
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
             new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
-        """
-        does post-correction collision calculations.  Abstract.
-        :param check:
-        :param level:
-        :param player:
-        :param gravity:
-        :param new_scheduled:
-        :param pre_collision_momentum:
-        :return:
-        """
-        look = 3 * (check.other[Blocks.activator.rotation] + (1 - check.other[Blocks.activator.grav_locked]) *
-                    level.gravity[0] + 2) % 4
-        coordinates = (
-            check.coordinates[0] + sin(look),
-            check.coordinates[1] - cos(look)
-        )
+            pre_collision_momentum: tuple[int, int],
+            force: tuple,
+            block: Block,
+            coordinates: tuple[int, int]
+    ):
         if coordinates not in new_scheduled:
-            new_scheduled[coordinates] = (look, check.other[Activator.delay])
+            new_scheduled[coordinates] = (check.direction, check.other[Activator.delay])
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -1112,15 +1146,9 @@ class FragileGround(AdvancedSolid):
     collide_priority = 2.02
 
     @staticmethod
-    def post_correction_collide(
-            check: Collision,
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
+    def post_correction_collide(check: Collision, level: Wrap, player: IGP, gravity: list[int, float],
+                                new_scheduled: dict[tuple[int, int], tuple[int, int]], pre_collision_momentum: tuple,
+                                force: bool) -> None:
         """
         does post-correction collision calculations.  Abstract.
         :param check:
@@ -1131,7 +1159,7 @@ class FragileGround(AdvancedSolid):
         :param pre_collision_momentum:
         :return:
         """
-        if check.other[FragileGround.sturdiness] < abs(pre_collision_momentum[(check.direction + 1) % 2]):
+        if not FragileGround.determine_activate(force, True, check.other[FragileGround.sturdiness]):
             block = level.blocks[check.coordinates]
             block.type = Air
             if check.other[FragileGround.remove_barriers]:
@@ -1149,7 +1177,7 @@ class FragileGround(AdvancedSolid):
         return res
 
 
-class Destroyer(AdvancedSolid, PointedBlock):
+class Destroyer(RotationChooseBlock):
     """
     enum for destroyer block
     """
@@ -1164,35 +1192,18 @@ class Destroyer(AdvancedSolid, PointedBlock):
     collide_priority = 2.10
 
     @staticmethod
-    def post_correction_collide(
+    def given_block(
             check: Collision,
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
             new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
-        """
-        does post-correction collision calculations.  Abstract.
-        :param check:
-        :param level:
-        :param player:
-        :param gravity:
-        :param new_scheduled:
-        :param pre_collision_momentum:
-        :return:
-        """
-        if not activate:
-            return
-        look = 3 * (check.other[Destroyer.rotation] + (1 - check.other[Destroyer.grav_locked]) *
-                    level.gravity[0] + 2) % 4
-        coordinates = (
-            check.coordinates[0] + sin(look),
-            check.coordinates[1] - cos(look)
-        )
-        block = level.blocks.get(coordinates, None)
-        if block is None:
+            pre_collision_momentum: tuple[int, int],
+            force: tuple,
+            block: Block,
+            coordinates: tuple[int, int]
+    ):
+        if not Destroyer.determine_activate(force, check.local):
             return
         if not isinstance(check.other[Destroyer.match_block], bool):
             if check.other[Destroyer.match_block] is None:
@@ -1253,7 +1264,7 @@ class Destroyer(AdvancedSolid, PointedBlock):
         return res
 
 
-class Rotator(AdvancedSolid, VariableValue, PointedBlock):
+class Rotator(RotationChooseBlock, VariableValue):
     """
     enum for rotator block
     """
@@ -1269,57 +1280,40 @@ class Rotator(AdvancedSolid, VariableValue, PointedBlock):
     collide_priority = 2.11
 
     @staticmethod
-    def post_correction_collide(
+    def given_block(
             check: Collision,
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
             new_scheduled: dict[tuple[int, int], tuple[int, int]],
-            pre_collision_momentum: tuple,
-            activate: bool
-    ) -> None:
-        """
-        does post-correction collision calculations.  Abstract.
-        :param check:
-        :param level:
-        :param player:
-        :param gravity:
-        :param new_scheduled:
-        :param pre_collision_momentum:
-        :param activate:
-        :return:
-        """
-        if activate:
-            look = 3 * (check.other[Rotator.rotation] - (1 - check.other[Rotator.grav_locked]) *
-                        level.gravity[0] + 2) % 4
-            coordinates = (
-                check.coordinates[0] + sin(look),
-                check.coordinates[1] - cos(look)
-            )
-            block = level.blocks.get(coordinates, None)
-            if block is None:
-                return
-            block_rotate = check.other[Rotator.variable_value]
-            if check.other[Rotator.rotate_block] and issubclass(block.type, PointedBlock):
-                if not check.other[Rotator.mode]:  # if setting, not rotating
-                    if check.other[Rotator.grav_account] and block.type.grav_locked is not None:  # check if you're accounting for gravity (and if the other block does too)
-                        block_rotate = (check.other[Rotator.variable_value] - block.other[
-                            block.type.rotation] + gravity[0]) % 4
-                    else:
-                        block_rotate = (check.other[Rotator.variable_value] - block.other[
-                            block.type.rotation]) % 4
-                # block.other["rotation"] = (check.other["mode"] * block.other["rotation"] + check.other["amount"]) % 4
-                block.other[Rotator.rotation] = (block.other[block.type.rotation] + block_rotate) % 4
-            elif not check.other[Rotator.mode]:
-                block_rotate = 0
-            if check.other[Rotator.rotate_barriers]:
-                for i in range(len(block.barriers)):
-                    block.barriers[i] = (
-                        block.barriers[i][0],
-                        block.barriers[i][1],
-                        block.barriers[i][2][4 - block_rotate:]
-                        + block.barriers[i][2][:4 - block_rotate]
-                    )
+            pre_collision_momentum: tuple[int, int],
+            force: tuple,
+            block: Block,
+            coordinates: tuple[int, int]
+    ):
+        if not Rotator.determine_activate(force, check.local):
+            return
+        block_rotate = check.other[Rotator.variable_value]
+        if check.other[Rotator.rotate_block] and issubclass(block.type, PointedBlock):
+            if not check.other[Rotator.mode]:  # if setting, not rotating
+                if check.other[Rotator.grav_account] and block.type.grav_locked is not None:  # check if you're accounting for gravity (and if the other block does too)
+                    block_rotate = (check.other[Rotator.variable_value] - block.other[
+                        block.type.rotation] + gravity[0]) % 4
+                else:
+                    block_rotate = (check.other[Rotator.variable_value] - block.other[
+                        block.type.rotation]) % 4
+            # block.other["rotation"] = (check.other["mode"] * block.other["rotation"] + check.other["amount"]) % 4
+            block.other[Rotator.rotation] = (block.other[block.type.rotation] + block_rotate) % 4
+        elif not check.other[Rotator.mode]:
+            block_rotate = 0
+        if check.other[Rotator.rotate_barriers]:
+            for i in range(len(block.barriers)):
+                block.barriers[i] = (
+                    block.barriers[i][0],
+                    block.barriers[i][1],
+                    block.barriers[i][2][4 - block_rotate:]
+                    + block.barriers[i][2][:4 - block_rotate]
+                )
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
