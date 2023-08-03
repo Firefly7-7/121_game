@@ -770,7 +770,6 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     i1 += 1
             # i1 -= 1
             i1, reps = decode_length_indicator(i1)
-            # print(block.type, block.other)
             # print("Number of blocks:", convert_from_b100(level_string[i1:i1 + 2:1]) + 1)
             # print("Number of blocks (shift -1):", convert_from_b100(level_string[i1-1:i1 + 1:1]) + 1)
             # print("Number of blocks (shift +1):", convert_from_b100(level_string[i1+1:i1 + 3:1]) + 1)
@@ -945,7 +944,6 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
                 for mult, val in attributes:  # loops through attributes list with multiplicatory property and adds together, creating custom base number
                     additive += cumulative * val
                     cumulative *= mult
-                # print(block.type, additive)
                 specific_save += convert_to_b100(int(additive), length)
             if SavingFieldGroups.string in save_code[block.type]:
                 for s in save_code[block.type][SavingFieldGroups.string]:

@@ -7,10 +7,10 @@ from enum import Enum
 from abc import ABC, abstractmethod, ABCMeta
 from typing import Optional, Type
 from pygame import SRCALPHA
-from pygame.surface import Surface
 from pygame.transform import smoothscale
 from pygame.font import Font
-from pygame.draw import line, lines, polygon, circle
+from pygame import Rect, Surface
+from pygame.draw import line, lines, polygon, circle, rect
 from render_help import cos, sin, draw_arrow, clean_decimal
 from game_structures import Collision
 from functools import total_ordering
@@ -51,16 +51,6 @@ class BlockType(ABC):
 
     priority_list_index: Optional[int] = None
 
-    # noinspection PyPropertyDefinition
-    @staticmethod
-    @property
-    @abstractmethod
-    def collide_priority() -> float:
-        """
-        collide priority field
-        :return:
-        """
-        pass
 
     # noinspection PyPropertyDefinition
     @staticmethod
@@ -95,7 +85,7 @@ class BlockType(ABC):
         """
         pass
 
-    collide_priority: float = -1
+    collide_priority: float = None
 
     @staticmethod
     @abstractmethod
@@ -234,7 +224,6 @@ class NoCollision(BlockType, ABC):
     class for blocks that have no collisions possible
     """
 
-    collide_priority = None
     solid = False
 
     @staticmethod
@@ -438,6 +427,38 @@ class Destroys(BlockType, ABC):
         :return:
         """
         return {cls, Air}
+
+
+class HasCoordinates(BlockType, ABC):
+    """
+    superclass for anything with coordinates
+    """
+    @staticmethod
+    @property
+    @abstractmethod
+    def relative() -> int:
+        """
+        what is it relative to?
+        :return:
+        """
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def x() -> int:
+        """
+        x value
+        :return:
+        """
+
+    @staticmethod
+    @property
+    @abstractmethod
+    def y() -> int:
+        """
+        y value
+        :return:
+        """
 
 
 class Player(NoCollision):
@@ -1011,7 +1032,7 @@ class Activator(RotationChooseBlock):
         return res
 
 
-class Portal(PointedBlock):
+class Portal(PointedBlock, HasCoordinates):
     """
     enum for portal block
     """
@@ -1488,6 +1509,113 @@ class AchievementGoal(GivesAchievement, Goal):
             level.won = True
 
 
+class ReCenter(HasCoordinates, AdvancedSolid):
+    """
+    block that recenters the screen
+    """
+
+    name = "ReCenter"
+
+    description = "Re-centers the screen around a point."
+    collide_priority = 2.16
+    relative = 0
+
+    x = 1
+    y = 2
+
+    @staticmethod
+    def post_correction_collide(
+            check: Collision,
+            level: Wrap,
+            player: IGP,
+            gravity: list[int, float],
+            new_scheduled: dict[tuple[int, int], tuple[int, int]],
+            pre_collision_momentum: tuple,
+            force: float
+    ) -> None:
+        """
+        moves the screen
+        :param check:
+        :param level:
+        :param player:
+        :param gravity:
+        :param new_scheduled:
+        :param pre_collision_momentum:
+        :param force:
+        :return:
+        """
+        if not ReCenter.determine_activate(force, check.local):
+            return
+        match check.other[ReCenter.relative]:
+            case 0:
+                level.center[0] += check.other[ReCenter.x]
+                level.center[1] += check.other[ReCenter.y]
+            case 1:
+                level.center[0] = player.pos[0] // 30 + check.other[ReCenter.x]
+                level.center[1] = player.pos[1] // 30 + check.other[ReCenter.y]
+            case 2:
+                level.center[0] = check.coordinates[0] + check.other[ReCenter.x]
+                level.center[1] = check.coordinates[1] + check.other[ReCenter.y]
+
+
+    @staticmethod
+    def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
+        """
+        draws block
+        :param data:
+        :param gravity:
+        :param font:
+        :param scale:
+        :return:
+        """
+        res = Surface((scale, scale))
+        res.fill((200, 200, 200))
+        res.blit(
+            smoothscale(
+                font.render(
+                    f"({data[ReCenter.x]},{data[ReCenter.y]})",
+                    True,
+                    (64, 64, 64),
+                    None
+                ),
+                (scale * 3 / 4, scale * 1 / 4)
+            ),
+            (scale / 8, 5 * scale / 8)
+        )
+        match data[ReCenter.relative]:
+            case 0:
+                for i in range(4):
+                    x = 5 * scale / 16 + i * scale / 8
+                    line(
+                        res,
+                        (0, 0, 0),
+                        (x, scale / 8),
+                        (x, scale / 2)
+                    )
+                for i in range(4):
+                    y = scale / 8 + i * scale / 8
+                    line(
+                        res,
+                        (0, 0, 0),
+                        (5 * scale / 16, y),
+                        (11 * scale / 16, y)
+                    )
+            case 1:
+                rect(
+                    res,
+                    (0, 0, 0),
+                    Rect(
+                        5 * scale / 16,
+                        scale / 8,
+                        6 * scale / 16,
+                        6 * scale / 16
+                    ),
+                    3
+                )
+        return res
+
+
+
 class Air(NoCollision):
     """
     air block (in other words, nothing)
@@ -1581,6 +1709,7 @@ class Blocks:
     achievement_goal = AchievementGoal
     air = Air
     error_block = ErrorBlock
+    re_center = ReCenter
 
 def position_correction(
         block_coords: tuple[int, int],

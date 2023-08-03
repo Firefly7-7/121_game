@@ -17,6 +17,7 @@ from pygame.draw import line, circle
 from pygame.transform import smoothscale
 from sortedcontainers import SortedList
 from abc import ABCMeta
+import traceback
 
 
 @dataclass()
@@ -374,18 +375,18 @@ class LevelWrap:
         :param player:
         :return: new player position, player momentum, new block record, new scheduled
         """
-        if self.bounds + 30 > player.pos[0] + player.mom[0]:
-            player.mom[0] = 0
-            player.pos[0] = self.bounds + 30
-        elif player.pos[0] + player.mom[0] > 11 * 30 - self.bounds + 30:
-            player.mom[0] = 0
-            player.pos[0] = 11 * 30 - self.bounds + 30
-        if self.bounds + 30 > player.pos[1] + player.mom[1]:
-            player.mom[1] = 0
-            player.pos[1] = self.bounds + 30
-        elif player.pos[1] + player.mom[1] > 11 * 30 - self.bounds + 30:
-            player.mom[1] = 0
-            player.pos[1] = 11 * 30 - self.bounds + 30
+        if self.bounds + (self.center[0] - 5) * 30 > player.pos[0]:
+            player.mom[0] = max(0, player.mom[0])
+            player.pos[0] = self.bounds + (self.center[0] - 5) * 30
+        elif player.pos[0] > (self.center[0] + 6) * 30 - self.bounds:
+            player.mom[0] = min(0, player.mom[0])
+            player.pos[0] = (self.center[0] + 6) * 30 - self.bounds
+        if self.bounds + (self.center[1] - 5) * 30 > player.pos[1]:
+            player.mom[1] = max(0, player.mom[1])
+            player.pos[1] = self.bounds + (self.center[1] - 5) * 30
+        elif player.pos[1] > (self.center[1] + 6) * 30 - self.bounds:
+            player.mom[1] = min(0, player.mom[1])
+            player.pos[1] = (self.center[1] + 6) * 30 - self.bounds
         player.pos[0] += player.mom[0]
         if player.mom[0] > 0:
             if (player.pos[0] + 10) // 30 != (player.pos[0] - player.mom[0] + 10) // 30:
@@ -717,6 +718,7 @@ class LevelWrap:
                     )
                 )
         else:
+            # for play in self.players:
             for play in self.in_between_track:
                 drawn.blit(
                     player,
@@ -760,6 +762,7 @@ class LevelWrap:
                 circle(res, degree_to_rgb(block.link * 54), (scale / 4, scale / 4), scale / 16)
             return res
         except:
+            # traceback.print_exc()
             return Blocks.error_block.render([], 0, font, scale)
 
     def rename(self, name: str):

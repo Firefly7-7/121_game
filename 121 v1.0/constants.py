@@ -23,7 +23,7 @@ LETTER_CODES: dict[str, str] = {
     "2": "1234567890qwertyuiopasdfghjklzxcvbnm`-=[]\;',./~!()\"#$%^&*_+{}|:<>?←↑→↓↔↖↗↘↙↚↛↜↝↞↟↠↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇋⇊⇉⇈⇇",
     "3": "n|tao↯q↛x↠p↣0+k_>5)↬↔fv↝c6y%↢↰7w<(↪gh↙su8i'9m↨}[↖↭`↥?↫↚*2↧↲jl↞eb↑\\r↟↮↦=3↤/-]↗$z\",;↩14!←:^{~.↱d→↜#↓&↘",
     "4": "1234567890-=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéç:â€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ",
-    "5": "1234567890=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéç:â€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ"
+    "5": "1234567890=qwertyuiop[]asdfghjkàl;’zxcvbnm,./!@#$%^&()+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<?úíóáéçâ€èìùòÀÈÙÌÒÁÉÚÍÓÄËÏÜÖêûîôÂÊÛÎÔ"
 }
 
 # noinspection IncorrectFormatting
@@ -138,15 +138,15 @@ achievement_list = tuple(sorted(list(BASE_ACHIEVEMENTS.keys())))
 
 # for level saving.  DO NOT CHANGE ORDERING, only add to end
 # noinspection IncorrectFormatting
-BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.jump, Blocks.gravity, Blocks.easter_egg, Blocks.repel, Blocks.activator, Blocks.coin, Blocks.msg, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.air, Blocks.ice, Blocks.portal, Blocks.achievement_goal, Blocks.fragile_ground, Blocks.destroyer, Blocks.rotator, Blocks.error_block)
+BLOCKS: tuple[BlockType, ...] = (Blocks.player, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.jump, Blocks.gravity, Blocks.easter_egg, Blocks.repel, Blocks.activator, Blocks.coin, Blocks.msg, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.air, Blocks.ice, Blocks.portal, Blocks.achievement_goal, Blocks.fragile_ground, Blocks.destroyer, Blocks.rotator, Blocks.error_block, Blocks.re_center)
 BARRIERS: tuple[BlockType, ...] = (Blocks.ground, Blocks.lava, Blocks.repel, Blocks.mud, Blocks.sticky, Blocks.air, Blocks.ice, Blocks.goal, Blocks.bouncy)
 
 # noinspection IncorrectFormatting
-WORKING_BLOCK_LIST: list[[BlockType]] = [Blocks.air, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer]
+WORKING_BLOCK_LIST: list[[BlockType]] = [Blocks.air, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.re_center]
 
 # for construction
 # noinspection IncorrectFormatting
-BLOCK_LIST: list[BlockType] = [Blocks.delete, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.rotator]
+BLOCK_LIST: list[BlockType] = [Blocks.delete, Blocks.ground, Blocks.goal, Blocks.lava, Blocks.ice, Blocks.mud, Blocks.sticky, Blocks.bouncy, Blocks.fragile_ground, Blocks.jump, Blocks.repel, Blocks.coin, Blocks.msg, Blocks.gravity, Blocks.portal, Blocks.activator, Blocks.destroyer, Blocks.rotator, Blocks.re_center]
 ADMIN_BLOCKS: list[BlockType] = [Blocks.easter_egg, Blocks.achievement_goal, Blocks.error_block]
 # dict of block type string to list of field tuples
 # entries into field list go as follows:
@@ -226,7 +226,7 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
     Blocks.bouncy: [],
     Blocks.ice: [],
     Blocks.portal: [
-        (Blocks.portal.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 3, 1, ("Screen", "Player", "Portal")),
+        (Blocks.portal.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 3, 1, ("Screen", "Player", "Block")),
         (Blocks.portal.x, "X", FieldType.iterator, 0, {}, -11, 12, 1),
         (Blocks.portal.y, "Y", FieldType.iterator, 0, {}, -11, 12, 1),
         (Blocks.portal.reflect_x, "Reflect X Momentum", FieldType.boolean, False, {}),
@@ -255,7 +255,12 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
         (Blocks.rotator.rotate_block, "Rotate Block", FieldType.boolean, True, {}),
         (Blocks.rotator.rotate_barriers, "Rotate Barriers", FieldType.boolean, True, {}),
     ],
-    Blocks.error_block: []
+    Blocks.error_block: [],
+    Blocks.re_center: [
+        (Blocks.re_center.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 3, 1, ("Screen", "Player", "Block")),
+        (Blocks.re_center.x, "X", FieldType.iterator, 0, {}, -11, 12, 1),
+        (Blocks.re_center.y, "Y", FieldType.iterator, 0, {}, -11, 12, 1),
+    ]
 }
 
 
@@ -411,6 +416,13 @@ SAVE_CODE: dict[str, dict[BlockType, dict[SavingFieldGroups, list[tuple[int, Any
                 (Blocks.destroyer.destroy_link, 1, 0, False),
                 (Blocks.destroyer.destroy_barriers, 2, 0, False),
                 (Blocks.destroyer.destroy_block, 1, 0, False)
+            ]
+        },
+        Blocks.re_center: {
+            SavingFieldGroups.number: [
+                (Blocks.re_center.relative, 2, 0, False),
+                (Blocks.re_center.x, 11, -11, False),
+                (Blocks.re_center.y, 11, -11, False),
             ]
         }
     }
