@@ -10,6 +10,8 @@ from game_structures import Button, ButtonHolder
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
 from construction_areas import ParentConstructionArea, PlayerEditing, GravityEditing, BlockEditing, BarrierEditing, LinkEditing
+from block_data import Blocks, Block
+from render_help import cos, sin
 
 
 class Construction(Utility):
@@ -331,6 +333,41 @@ class Construction(Utility):
             [PlayerEditing, GravityEditing, BlockEditing, BarrierEditing, LinkEditing]
         )
         self.add_button(ParentConstructionArea.single_time_prepare(update_game_image, self))
+
+        # 7...: re-center buttons
+        re_center_buttons = ButtonHolder()
+        self.add_button(re_center_buttons)
+
+        def change_center(direction: int) -> None:
+            """
+            changes level editing center
+            :param direction:
+            :return:
+            """
+            self.level_data.level_on.center = (
+                self.level_data.level_on.center[0] + cos(direction),
+                self.level_data.level_on.center[1] + sin(direction)
+            )
+            update_game_image()
+
+        for direction in range(0, 4):
+            re_center_buttons.add_button(Button.make_img_button(
+                change_center,
+                self.level_data.draw_block(
+                    Block(
+                        Blocks.air,
+                        [(Blocks.ground, False, (True, True, True, True))]
+                    ),
+                    self.fonts[BarrierEditing.scale],
+                    scale=16
+                ),
+                (
+                    240 * 2 + 240 * cos(direction),
+                    180 * 2 - 240 * sin(direction)
+                ),
+                ("move up", "move right", "move down", "move left")[direction],
+                arguments={"direction": direction}
+            ))
 
         mouse_down = False
         click_tick = False
