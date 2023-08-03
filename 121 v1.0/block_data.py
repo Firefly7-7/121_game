@@ -1522,6 +1522,8 @@ class ReCenter(HasCoordinates, AdvancedSolid):
 
     x = 1
     y = 2
+    affect_x = 3
+    affect_y = 4
 
     @staticmethod
     def post_correction_collide(
@@ -1546,16 +1548,30 @@ class ReCenter(HasCoordinates, AdvancedSolid):
         """
         if not ReCenter.determine_activate(force, check.local):
             return
-        match check.other[ReCenter.relative]:
-            case 0:
-                level.center[0] += check.other[ReCenter.x]
-                level.center[1] += check.other[ReCenter.y]
-            case 1:
-                level.center[0] = player.pos[0] // 30 + check.other[ReCenter.x]
-                level.center[1] = player.pos[1] // 30 + check.other[ReCenter.y]
-            case 2:
-                level.center[0] = check.coordinates[0] + check.other[ReCenter.x]
-                level.center[1] = check.coordinates[1] + check.other[ReCenter.y]
+        if check.other[ReCenter.affect_x]:
+            match check.other[ReCenter.relative]:
+                case 0:
+                    level.center[0] += check.other[ReCenter.x]
+                case 1:
+                    level.center[0] = player.pos[0] // 30 + check.other[ReCenter.x]
+                    level.run_in_between = False
+                case 2:
+                    level.center[0] = check.coordinates[0] + check.other[ReCenter.x]
+                case 3:
+                    level.center[0] = player.pos[0] / 30 + check.other[ReCenter.x]
+                    level.run_in_between = False
+        if check.other[ReCenter.affect_y]:
+            match check.other[ReCenter.relative]:
+                case 0:
+                    level.center[1] += check.other[ReCenter.y]
+                case 1:
+                    level.center[1] = player.pos[1] // 30 + check.other[ReCenter.y]
+                    level.run_in_between = False
+                case 2:
+                    level.center[1] = check.coordinates[1] + check.other[ReCenter.y]
+                case 3:
+                    level.center[1] = player.pos[1] / 30 + check.other[ReCenter.x]
+                    level.run_in_between = False
 
 
     @staticmethod
@@ -1573,7 +1589,7 @@ class ReCenter(HasCoordinates, AdvancedSolid):
         res.blit(
             smoothscale(
                 font.render(
-                    f"({data[ReCenter.x]},{data[ReCenter.y]})",
+                    f"({data[ReCenter.x] if data[ReCenter.affect_x] else '~'},{data[ReCenter.y] if data[ReCenter.affect_y] else '~'})",
                     True,
                     (64, 64, 64),
                     None
@@ -1611,6 +1627,18 @@ class ReCenter(HasCoordinates, AdvancedSolid):
                         6 * scale / 16
                     ),
                     3
+                )
+            case 3:
+                rect(
+                    res,
+                    (0, 0, 0),
+                    Rect(
+                        5 * scale / 16,
+                        scale / 8,
+                        6 * scale / 16,
+                        6 * scale / 16
+                    ),
+                    0
                 )
         return res
 

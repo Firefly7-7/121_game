@@ -248,13 +248,15 @@ class LevelSelect(Utility):
             :return: none
             """
             if isinstance(self.level_data, LevelWrap):
-                level_on = self.level_data.level_on
-                while isinstance(level_on, Level):
-                    self.working_on.append(encode_level_to_string(level_on))
+                string_split = encode_level_to_string(self.level_data.level_on).split("\n")
+                for string in string_split:
+                    level_data = decode_safety_wrap(string)
+                    if not isinstance(level_data, LevelWrap):
+                        continue
+                    self.working_on.append(string)
                     self.alerts.add_alert(
-                        f"Imported level '{level_on.name}' from level select to level construction."
+                        f"Imported level '{level_data.level_on.name}' from level select to level construction."
                     )
-                    level_on = level_on.next
                 self.constructing = len(self.working_on) - 1
                 self.place = "construction"
 
@@ -353,10 +355,13 @@ class LevelSelect(Utility):
             if len(self.levels[1]) == 0:
                 return
             del_lvl = self.levels[1].pop(self.look_at[1])
-            remove(f"custom_levels/{del_lvl[0]}.txt")
-            if self.look_at[1] > 0:
-                self.look_at[1] -= 1
-            get_level()
+            try:
+                remove(f"custom_levels/{del_lvl[0]}.txt")
+                if self.look_at[1] > 0:
+                    self.look_at[1] -= 1
+                get_level()
+            except:
+                self.alerts.add_alert("Whoops!  Couldn't delete!")
 
         # 11: delete level from directory [dynamic]
 

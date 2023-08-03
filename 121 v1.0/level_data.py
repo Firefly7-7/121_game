@@ -75,6 +75,7 @@ class LevelWrap:
         self.center: Optional[list[int, int]] = None
         self.priority_list: Union[tuple[Union[BlockType, None]], None] = None
         self.in_between_track: list[InGamePlayerInBetween] = []
+        self.run_in_between: bool = False
 
     def next(self) -> bool:
         """
@@ -489,7 +490,9 @@ class LevelWrap:
             disp = req_x - player.pos[0]
             player.pos[0] += disp
             remaining_xm -= disp
-        for dif in range(0, reps):
+        elif self.bounds + (self.center[0] - 5) * 30 > player.pos[0] + player.mom[0] or player.pos[0] + player.mom[0] > (self.center[0] + 6) * 30 - self.bounds:
+            reps = 1
+        for dif in range(reps):
             player.pos[0] += 30 * step
             remaining_xm -= 30 * step
             x = int(player.pos[0] + 11 * step) // 30
@@ -535,16 +538,17 @@ class LevelWrap:
         remaining_ym = player.mom[1]
         step = (player.mom[1] > 0) * 2 - 1
         start_sign = player.mom[1] > 0
-        remain = abs(int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
-        if remain > 0:
+        reps = abs(int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
+        if reps > 0:
             y_init = int(player.pos[1] + 10 * step) // 30
             y_next = y_init + (1 - step) / 2
             req_y = y_next * 30 - 10 * step
             disp = req_y - player.pos[1]
             player.pos[1] += disp
             remaining_ym -= disp
-        while remain > 0:
-            remain -= 1
+        elif self.bounds + (self.center[1] - 5) * 30 > player.pos[1] + player.mom[1] or player.pos[1] + player.mom[1] > (self.center[1] + 6) * 30 - self.bounds:
+            reps = 1
+        for dif in range(reps):
             player.pos[1] += 30 * step
             remaining_ym -= 30 * step
             y = int(player.pos[1] + 11 * step) // 30
@@ -675,6 +679,7 @@ class LevelWrap:
         self.time = get_ticks()
         if self.alive:
             if self.tick_track == self.frame_skip:
+                self.run_in_between = True
                 self.tick_track = 0
                 self.in_between_track.clear()
                 for player in self.players:
@@ -682,8 +687,9 @@ class LevelWrap:
                     self.in_between_track.append(InGamePlayerInBetween(player))
             else:
                 self.tick_track += 1
-                for player in self.in_between_track:
-                    self.in_between_physics(player)
+                if self.run_in_between:
+                    for player in self.in_between_track:
+                        self.in_between_physics(player)
 
     def render_level(self, scale: int, font: Font, player_imgs: tuple[Surface, Surface, Surface, Surface]):
         """
@@ -696,17 +702,19 @@ class LevelWrap:
         drawn = Surface((11 * scale + floor(scale / 20), 11 * scale + floor(scale / 20)))
         drawn.fill((255, 255, 255))
         for coordinates, block in self.blocks.items():
-            if abs(coordinates[0] - self.center[0]) > 5 or abs(coordinates[1] - self.center[1]) > 5:
+            if abs(coordinates[0] - self.center[0]) > 6 or abs(coordinates[1] - self.center[1]) > 6:
                 continue
             drawn.blit(
                 self.draw_block(block, font, scale),
                 ((coordinates[0] - self.center[0] + 5) * scale, (5 - coordinates[1] + self.center[1]) * scale)
             )
             # print(coordinates)
+        x_offset = self.center[0] % 1
         for i in range(11 + 1):
-            line(drawn, (0, 0, 0), (i * scale, 0), (i * scale, 11 * scale), floor(scale / 10))
+            line(drawn, (0, 0, 0), ((i - x_offset) * scale, 0), ((i - x_offset) * scale, 11 * scale), floor(scale / 10))
+        y_offset = self.center[1] % 1
         for i in range(11 + 1):
-            line(drawn, (0, 0, 0), (0, i * scale), (11 * scale, i * scale), floor(scale / 10))
+            line(drawn, (0, 0, 0), (0, (i + y_offset) * scale), (11 * scale, (i + y_offset) * scale), floor(scale / 10))
         player = smoothscale(player_imgs[self.gravity[0]], (scale * 3 / 4, scale * 3 / 4))
         if self.tick_track == 0:
             for play in self.players:

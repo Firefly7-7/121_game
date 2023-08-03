@@ -763,11 +763,13 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                         if s[1] is not None and block.other[s[1]] != s[2]:
                             # print("text field continued")
                             continue
-                        i1 += 1
+                        # i1 += 1
+                        i1, length = decode_length_indicator(i1)
+                        # print(f"Getting text field from '{level_string}', range: {i1}-{i1 + length}, res: '{level_string[i1: i1 + length]}'")
                         # print(i1, level_string[i1:i1 + 2], convert_from_b100(level_string[i1:i1 + 2]))
-                        set_field(s[0], block.other, level_string[i1 + 2: i1 + convert_from_b100(level_string[i1:i1 + 2]) + 2])
-                        i1 += convert_from_b100(level_string[i1:i1 + 2])
-                    i1 += 1
+                        set_field(s[0], block.other, level_string[i1: i1 + length])
+                        i1 += length
+                    # i1 += 1
             # i1 -= 1
             i1, reps = decode_length_indicator(i1)
             # print("Number of blocks:", convert_from_b100(level_string[i1:i1 + 2:1]) + 1)
@@ -787,6 +789,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                     i1 += 1
                 y *= convert_from_b100(level_string[i1:i1 + y_l])
                 i1 += y_l
+                # print(f"({x},{y}) for block {block}")
                 level.blocks[(x, y)] = deepcopy(
                     block
                 )
@@ -857,6 +860,8 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
         :param req_length: length the number needs to be for code to work
         :return: string representation
         """
+        if num < 0:
+            return "-" + convert_to_b100(abs(num), req_length)
         digit = 1
         string = ""
         while num >= digit:
@@ -949,9 +954,9 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
                 for s in save_code[block.type][SavingFieldGroups.string]:
                     # noinspection PyTypeChecker
                     if s[1] is None:
-                        specific_save += convert_to_b100(len(block.other[s[0]]), 2) + block.other[s[0]]
+                        specific_save += make_length_indicator(len(block.other[s[0]])) + block.other[s[0]]
                     elif block.other[s[1]] == s[2]:
-                        specific_save += convert_to_b100(len(block.other[s[0]]), 2) + block.other[s[0]]
+                        specific_save += make_length_indicator(len(block.other[s[0]])) + block.other[s[0]]
         if specific_save in block_saves:  # check for duplicates
             block_saves[specific_save].append(coordinates)
         else:

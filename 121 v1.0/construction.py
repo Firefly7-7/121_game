@@ -75,6 +75,26 @@ class Construction(Utility):
             else:
                 self.level_data = decode_safety_wrap(self.working_on[index])
             update_game_image()
+            re_center_buttons.clear()
+            if isinstance(self.level_data, LevelWrap):
+                for direction in range(0, 4):
+                    re_center_buttons.add_button(Button.make_img_button(
+                        change_center,
+                        self.level_data.draw_block(
+                            Block(
+                                Blocks.air,
+                                [(Blocks.ground, False, (True, True, True, True))]
+                            ),
+                            self.fonts[BarrierEditing.scale],
+                            scale=16
+                        ),
+                        (
+                            240 * 2 + 240 * cos(direction),
+                            180 * 2 - 240 * sin(direction)
+                        ),
+                        ("move up", "move right", "move down", "move left")[direction],
+                        arguments={"direction": direction}
+                    ))
             update_name_placard()
             ParentConstructionArea.update_construction_area(0)
 
@@ -350,25 +370,6 @@ class Construction(Utility):
             )
             update_game_image()
 
-        for direction in range(0, 4):
-            re_center_buttons.add_button(Button.make_img_button(
-                change_center,
-                self.level_data.draw_block(
-                    Block(
-                        Blocks.air,
-                        [(Blocks.ground, False, (True, True, True, True))]
-                    ),
-                    self.fonts[BarrierEditing.scale],
-                    scale=16
-                ),
-                (
-                    240 * 2 + 240 * cos(direction),
-                    180 * 2 - 240 * sin(direction)
-                ),
-                ("move up", "move right", "move down", "move left")[direction],
-                arguments={"direction": direction}
-            ))
-
         mouse_down = False
         click_tick = False
         load_editing_level(self.constructing)
@@ -379,12 +380,16 @@ class Construction(Utility):
                 mouse_pos = get_pos()
                 if abs(mouse_pos[0] - 240 * 2) < self.level_display.get_width() / 2 - 2 and abs(
                         mouse_pos[1] - 180 * 2) < self.level_display.get_height() / 2 - 2:
+                    uncorrected = (
+                        round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5),
+                        round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5)
+                    )
                     mouse_coords = (
-                        round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5) + self.level_data.level_on.center[0] - 6,
-                        round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5) + self.level_data.level_on.center[1] - 6
-
+                        uncorrected[0] + self.level_data.level_on.center[0] - 6,
+                        uncorrected[1] + self.level_data.level_on.center[1] - 6
                     )
                 else:
+                    uncorrected = None
                     mouse_coords = None
                 if get_pressed(3)[0]:
                     if mouse_down:
@@ -403,7 +408,7 @@ class Construction(Utility):
             )
             # handle construction screen specific visual changes
             if isinstance(self.level_data, LevelWrap):
-                ParentConstructionArea.tick(mouse_pos, mouse_coords)
+                ParentConstructionArea.tick(mouse_pos, mouse_coords, uncorrected)
         if isinstance(self.level_data, LevelWrap):
             self.level_data.level_on.name = self.buttons[2][0].text
             save_current_editing()

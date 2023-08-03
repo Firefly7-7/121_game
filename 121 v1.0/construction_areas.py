@@ -145,9 +145,10 @@ class ParentConstructionArea(ABC):
             ParentConstructionArea.construction_areas_available[ParentConstructionArea.construction_area_pointer].click_tick(mouse_coords)
 
     @staticmethod
-    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int]) -> None:
+    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int], uncorrected_mouse_coords: tuple[int, int]) -> None:
         """
         every tick does something (if overridden)
+        :param uncorrected_mouse_coords:
         :param mouse_pos:
         :param mouse_coords:
         :return:
@@ -155,7 +156,7 @@ class ParentConstructionArea(ABC):
         if ParentConstructionArea.construction_areas_available[
             ParentConstructionArea.construction_area_pointer].tick is not ParentConstructionArea.tick:
             ParentConstructionArea.construction_areas_available[
-                ParentConstructionArea.construction_area_pointer].tick(mouse_pos, mouse_coords)
+                ParentConstructionArea.construction_area_pointer].tick(mouse_pos, mouse_coords, uncorrected_mouse_coords)
 
 
 class PlayerEditing(ParentConstructionArea):
@@ -221,9 +222,10 @@ class PlayerEditing(ParentConstructionArea):
             PlayerEditing.update_display()
 
     @staticmethod
-    def tick(mouse_pos: tuple[int, int], mouse_coords):
+    def tick(mouse_pos: tuple[int, int], mouse_coords, uncorrected_mouse_coords):
         """
         draws player if player grabbed
+        :param uncorrected_mouse_coords:
         :param mouse_pos:
         :param mouse_coords:
         :return:
@@ -689,7 +691,7 @@ class BlockEditing(ParentConstructionArea):
         ParentConstructionArea.update_display()
 
     @staticmethod
-    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int]) -> None:
+    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int], uncorrected_mouse_coords) -> None:
         if mouse_coords is not None:
             drawn = Block(
                 BlockEditing.editing_block,
@@ -707,8 +709,8 @@ class BlockEditing(ParentConstructionArea):
                     40
                 ),
                 (
-                    240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
-                    180 * 2 + 11 * 20 - mouse_coords[1] * 40
+                    240 * 2 - 11 * 20 + uncorrected_mouse_coords[0] * 40 - 40,
+                    180 * 2 + 11 * 20 - uncorrected_mouse_coords[1] * 40
                 )
             )
 
@@ -883,7 +885,7 @@ class BarrierEditing(ParentConstructionArea):
         BarrierEditing.update_construction_area()
 
     @staticmethod
-    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int]) -> None:
+    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int], uncorrected_mouse_coords) -> None:
         if mouse_coords is not None:
             if BarrierEditing.editing_barrier[0] == Blocks.delete:
                 BarrierEditing.game_object.screen.blit(
@@ -896,8 +898,8 @@ class BarrierEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + uncorrected_mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - uncorrected_mouse_coords[1] * 40
                     )
                 )
             else:
@@ -914,8 +916,8 @@ class BarrierEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + uncorrected_mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - uncorrected_mouse_coords[1] * 40
                     )
                 )
 
@@ -1088,7 +1090,7 @@ class LinkEditing(ParentConstructionArea):
                     break
 
     @staticmethod
-    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int]) -> None:
+    def tick(mouse_pos: tuple[int, int], mouse_coords: tuple[int, int], uncorrected_mouse_coords) -> None:
         if mouse_coords is not None:
             if LinkEditing.editing_link[0] == "Remove":
                 LinkEditing.game_object.screen.blit(
@@ -1101,8 +1103,8 @@ class LinkEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + uncorrected_mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - uncorrected_mouse_coords[1] * 40
                     )
                 )
             elif LinkEditing.editing_link[0] == "Place":
@@ -1117,7 +1119,7 @@ class LinkEditing(ParentConstructionArea):
                         40
                     ),
                     (
-                        240 * 2 - 11 * 20 + mouse_coords[0] * 40 - 40,
-                        180 * 2 + 11 * 20 - mouse_coords[1] * 40
+                        240 * 2 - 11 * 20 + uncorrected_mouse_coords[0] * 40 - 40,
+                        180 * 2 + 11 * 20 - uncorrected_mouse_coords[1] * 40
                     )
                 )

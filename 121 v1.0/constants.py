@@ -132,7 +132,8 @@ BASE_ACHIEVEMENTS: dict[str, Achievement] = {
     "Multiply": Achievement("Play the level 'Two'!  Play the level 'Two'!"),
     "Quantum Tunneling": Achievement("Finish the level introducing you to portal blocks."),
     "Capitalism": Achievement("Collect coins, obviously to buy something with."),
-    "This was always a TTRPG": Achievement("Finish the level introducing you to campaigns.")
+    "This was always a TTRPG": Achievement("Finish the level introducing you to campaigns."),
+    "Ooh, offscreen easter egg!": Achievement("Find the offscreen easter egg in the level introducing you to blocks being offscreen.")
 }
 achievement_list = tuple(sorted(list(BASE_ACHIEVEMENTS.keys())))
 
@@ -257,9 +258,11 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
     ],
     Blocks.error_block: [],
     Blocks.re_center: [
-        (Blocks.re_center.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 3, 1, ("Screen", "Player", "Block")),
-        (Blocks.re_center.x, "X", FieldType.iterator, 0, {}, -11, 12, 1),
-        (Blocks.re_center.y, "Y", FieldType.iterator, 0, {}, -11, 12, 1),
+        (Blocks.re_center.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 4, 1, ("Screen", "Player", "Block", "Exact Player")),
+        (Blocks.re_center.affect_x, "Change X", FieldType.boolean, True, {}),
+        (Blocks.re_center.affect_y, "Change Y", FieldType.boolean, True, {}),
+        (Blocks.re_center.x, "X", FieldType.iterator, 0, {(Blocks.re_center.affect_x, tuple([True]))}, -11, 12, 1),
+        (Blocks.re_center.y, "Y", FieldType.iterator, 0, {(Blocks.re_center.affect_y, tuple([True]))}, -11, 12, 1),
     ]
 }
 
@@ -420,9 +423,11 @@ SAVE_CODE: dict[str, dict[BlockType, dict[SavingFieldGroups, list[tuple[int, Any
         },
         Blocks.re_center: {
             SavingFieldGroups.number: [
-                (Blocks.re_center.relative, 2, 0, False),
-                (Blocks.re_center.x, 11, -11, False),
-                (Blocks.re_center.y, 11, -11, False),
+                (Blocks.re_center.relative, 3, 0, False),
+                (Blocks.re_center.affect_x, 1, 0, False),
+                (Blocks.re_center.affect_y, 1, 0, False),
+                (Blocks.re_center.x, 11, -11, True),
+                (Blocks.re_center.y, 11, -11, True),
             ]
         }
     }
