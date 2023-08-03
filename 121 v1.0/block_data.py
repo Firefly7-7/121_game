@@ -1042,23 +1042,28 @@ class Portal(PointedBlock):
         :param new_scheduled: newly scheduled block updates
         :return: nada
         """
-        portal = player.collision_record[Portal.priority_list_index][0]
-        if portal.other[Portal.relative]:
-            player.pos[0] += portal.other[Portal.x] * 30
-            player.pos[1] += portal.other[Portal.y] * 30
-        else:
-            player.pos[0] = portal.other[Portal.x] * 30 + 15
-            player.pos[1] = portal.other[Portal.y] * 30 + 15
-        player_momentum = (
+        portal: Collision = player.collision_record[Portal.priority_list_index][0]
+        match portal.other[Portal.relative]:
+            case 0:
+                player.pos[0] = portal.other[Portal.x] * 30 + 15
+                player.pos[1] = portal.other[Portal.y] * 30 + 15
+            case 1:
+                player.pos[0] += portal.other[Portal.x] * 30
+                player.pos[1] += portal.other[Portal.y] * 30
+        player.mom = [
             player.mom[0] * (1 - 2 * portal.other[Portal.reflect_x]),
             player.mom[1] * (1 - 2 * portal.other[Portal.reflect_y])
-        )
-        player.mom[0], player.mom[1] = (
-            player.mom[0] * cos(portal.other[Portal.rotation]) + player_momentum[1] * sin(
+        ]
+        print(gravity[0])
+        if portal.local:
+            if 3 > gravity[0] > 0:
+                player.mom[(gravity[0] + 1) % 2] += gravity[1]
+        player.mom = [
+            player.mom[0] * cos(portal.other[Portal.rotation]) + player.mom[1] * sin(
                 portal.other[Portal.rotation]),
-            player.mom[1] * cos(portal.other[Portal.rotation]) - player_momentum[0] * sin(
+            player.mom[1] * cos(portal.other[Portal.rotation]) - player.mom[0] * sin(
                 portal.other[Portal.rotation])
-        )
+        ]
         player.stop = True
 
     @staticmethod

@@ -36,7 +36,8 @@ class Level:
     blocks: dict[tuple[int, int], Block]
     links: list[list[tuple[int, int]]]
     player_starts: list[tuple[int, int]]
-    version: int = 4
+    center: tuple[int, int]
+    version: int = 5
     next: Union[None, Level] = None
 
 
@@ -70,6 +71,7 @@ class LevelWrap:
         self.blocks: Optional[dict[tuple[int, int], Block]] = None
         self.links: Optional[list[list[tuple[int, int]]]] = None
         self.gravity: Optional[tuple[int, float]] = None
+        self.center: Optional[list[int, int]] = None
         self.priority_list: Union[tuple[Union[BlockType, None]], None] = None
         self.in_between_track: list[InGamePlayerInBetween] = []
 
@@ -140,6 +142,7 @@ class LevelWrap:
         self.blocks = deepcopy(self.level_on.blocks)
         self.links = deepcopy(self.level_on.links)
         self.gravity = deepcopy(self.level_on.gravity)
+        self.center = list(self.level_on.center)
         for i, link_objects in enumerate(self.links):
             for coordinates in link_objects:
                 if coordinates in self.blocks.keys():
@@ -150,7 +153,7 @@ class LevelWrap:
                     self.blocks[coordinates] = Block(
                         Blocks.air,
                         [],
-                        {},
+                        [],
                         i
                     )
         # prepare gamestate
@@ -476,10 +479,19 @@ class LevelWrap:
 
         remaining_xm = player.mom[0]
         step = (player.mom[0] > 0) * 2 - 1
-        for dif in range(0, abs(int(player.pos[0] + player.mom[0] + 10 * step) // 30 - int(player.pos[0] + 10 * step) // 30)):
+        start_sign = player.mom[0] > 0
+        reps = abs(int(player.pos[0] + player.mom[0] + 10 * step) // 30 - int(player.pos[0] + 10 * step) // 30)
+        if reps > 0:
+            x_init = int(player.pos[0] + 10 * step) // 30
+            x_next = x_init + (1 - step) / 2
+            req_x = x_next * 30 - 10 * step
+            disp = req_x - player.pos[0]
+            player.pos[0] += disp
+            remaining_xm -= disp
+        for dif in range(0, reps):
             player.pos[0] += 30 * step
             remaining_xm -= 30 * step
-            x = int(player.pos[0] + 10 * step) // 30
+            x = int(player.pos[0] + 11 * step) // 30
             self.collision(
                 player,
                 [
@@ -493,7 +505,27 @@ class LevelWrap:
                 return
             if player.stop:
                 remaining_xm = 0
+                # if (player.mom[0] > 0) == start_sign or player.mom[0] == 0:
+                #     remaining_xm = 0
+                # else:
+                #     remaining_xm *= -1
+                #     player.pos[0] -= 30 * step
                 break
+            # if (player.mom[0] > 0) != start_sign and player.mom[0] != 0:
+            #     start_sign = player.mom[0] > 0
+            #     if self.gravity[0] % 2 == 1:
+            #         player.mom[0] += self.gravity[1] * (self.gravity[0] - 2) / 2
+            #     remaining_xm = player.mom[0]
+            #     step *= -1
+            #     remain = abs(
+            #         int(player.pos[0] + player.mom[0] + 10 * step) // 30 - int(player.pos[0] + 10 * step) // 30)
+            #     if remain > 0:
+            #         x_init = int(player.pos[0] + 10 * step) // 30
+            #         x_next = x_init + (1 - step) / 2
+            #         req_x = x_next * 30 - 10 * step
+            #         disp = req_x - player.pos[0]
+            #         player.pos[0] += disp
+            #         remaining_xm -= disp
         player.pos[0] += remaining_xm
         # if not cls.alive:
         #     return
@@ -501,10 +533,20 @@ class LevelWrap:
 
         remaining_ym = player.mom[1]
         step = (player.mom[1] > 0) * 2 - 1
-        for dif in range(0, abs(int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)):
+        start_sign = player.mom[1] > 0
+        remain = abs(int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
+        if remain > 0:
+            y_init = int(player.pos[1] + 10 * step) // 30
+            y_next = y_init + (1 - step) / 2
+            req_y = y_next * 30 - 10 * step
+            disp = req_y - player.pos[1]
+            player.pos[1] += disp
+            remaining_ym -= disp
+        while remain > 0:
+            remain -= 1
             player.pos[1] += 30 * step
             remaining_ym -= 30 * step
-            y = int(player.pos[1] + 10 * step) // 30
+            y = int(player.pos[1] + 11 * step) // 30
             self.collision(
                 player,
                 [
@@ -518,7 +560,27 @@ class LevelWrap:
                 return
             if player.stop:
                 remaining_ym = 0
+                # if (player.mom[1] > 0) != start_sign or player.mom[1] == 0:
+                #     remaining_ym = 0
+                # else:
+                #     remaining_ym *= -1
+                #     player.pos[1] -= 30 * step
                 break
+            # if (player.mom[1] > 0) != start_sign and player.mom[1] != 0:
+            #     start_sign = player.mom[1] > 0
+            #     if self.gravity[0] == 0:
+            #         player.mom[1] += self.gravity[1]
+            #     remaining_ym = player.mom[1]
+            #     step *= -1
+            #     remain = abs(
+            #         int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
+            #     if remain > 0:
+            #         y_init = int(player.pos[1] + 10 * step) // 30
+            #         y_next = y_init + (1 - step) / 2
+            #         req_y = y_next * 30 - 10 * step
+            #         disp = req_y - player.pos[1]
+            #         player.pos[1] += disp
+            #         remaining_ym -= disp
         player.pos[1] += remaining_ym
 
         # bounds

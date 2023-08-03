@@ -804,7 +804,7 @@ class Collision:
     direction: int
     local: bool = False
     coordinates: tuple[int, int] = ()
-    other: dict[int, Any] = ()
+    other: list[Any] = ()
     link: Optional[int] = None
 
 

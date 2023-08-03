@@ -227,8 +227,8 @@ BLOCK_CONSTRUCTION: dict[BlockType, list[tuple[str, str, str, Any, set, Any, ...
     Blocks.ice: [],
     Blocks.portal: [
         (Blocks.portal.relative, "Relative Positioning", FieldType.iterator, 0, {}, 0, 2, 1, ("Screen", "Player", "Portal")),
-        (Blocks.portal.x, "X", FieldType.freeform_num, 0, {}, -11, 12, 1),
-        (Blocks.portal.y, "Y", FieldType.freeform_num, 0, {}, -11, 12, 1),
+        (Blocks.portal.x, "X", FieldType.iterator, 0, {}, -11, 12, 1),
+        (Blocks.portal.y, "Y", FieldType.iterator, 0, {}, -11, 12, 1),
         (Blocks.portal.reflect_x, "Reflect X Momentum", FieldType.boolean, False, {}),
         (Blocks.portal.reflect_y, "Reflect Y Momentum", FieldType.boolean, False, {}),
         (Blocks.portal.rotation, "Rotate Momentum", FieldType.iterator, 0, {}, 0, 4, 1, ("No effect", "Clockwise", "Reverse", "Counterclockwise"))
