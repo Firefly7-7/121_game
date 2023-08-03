@@ -584,28 +584,28 @@ class LevelWrap:
         player.pos[1] += remaining_ym
 
         # bounds
-        if self.bounds + 30 > player.pos[0]:
+        if self.bounds + (self.center[0] - 5) * 30 > player.pos[0]:
             # noinspection PyTypeChecker
             player.mom[0] = max(0, player.mom[0])
-            player.pos[0] = self.bounds + 30
+            player.pos[0] = self.bounds + (self.center[0] - 5) * 30
             if self.gravity[0] == 3:
                 player.grounded = True
-        elif player.pos[0] > 11 * 30 - self.bounds + 30:
+        elif player.pos[0] > (self.center[0] + 6) * 30 - self.bounds:
             # noinspection PyTypeChecker
             player.mom[0] = min(0, player.mom[0])
-            player.pos[0] = 11 * 30 - self.bounds + 30
+            player.pos[0] = (self.center[0] + 6) * 30 - self.bounds
             if self.gravity[0] == 1:
                 player.grounded = True
-        if self.bounds + 30 > player.pos[1]:
+        if self.bounds + (self.center[1] - 5) * 30 > player.pos[1]:
             # noinspection PyTypeChecker
             player.mom[1] = max(0, player.mom[1])
-            player.pos[1] = self.bounds + 30
+            player.pos[1] = self.bounds + (self.center[1] - 5) * 30
             if self.gravity[0] == 0:
                 player.grounded = True
-        elif player.pos[1] > 11 * 30 - self.bounds + 30:
+        elif player.pos[1] > (self.center[1] + 6) * 30 - self.bounds:
             # noinspection PyTypeChecker
             player.mom[1] = min(0, player.mom[1])
-            player.pos[1] = 11 * 30 - self.bounds + 30
+            player.pos[1] = (self.center[1] + 6) * 30 - self.bounds
             if self.gravity[0] == 2:
                 player.grounded = True
 
@@ -695,9 +695,11 @@ class LevelWrap:
         drawn = Surface((11 * scale + floor(scale / 20), 11 * scale + floor(scale / 20)))
         drawn.fill((255, 255, 255))
         for coordinates, block in self.blocks.items():
+            if abs(coordinates[0] - self.center[0]) > 5 or abs(coordinates[1] - self.center[1]) > 5:
+                continue
             drawn.blit(
                 self.draw_block(block, font, scale),
-                ((coordinates[0] - 1) * scale, (11 - coordinates[1]) * scale)
+                ((coordinates[0] - self.center[0] + 5) * scale, (5 - coordinates[1] + self.center[1]) * scale)
             )
             # print(coordinates)
         for i in range(11 + 1):
@@ -710,8 +712,8 @@ class LevelWrap:
                 drawn.blit(
                     player,
                     (
-                        (play.pos[0] - 30) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
-                        (360 - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
+                        (play.pos[0] - 30 * (self.center[0] - 5)) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
+                        (30 * (self.center[1] + 6) - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
                     )
                 )
         else:
@@ -719,8 +721,8 @@ class LevelWrap:
                 drawn.blit(
                     player,
                     (
-                        (play.pos[0] - 30) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
-                        (360 - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
+                        (play.pos[0] - 30 * (self.center[0] - 5)) * (scale / 30) - scale * 3 / 8 + floor(scale / 40),
+                        (30 * (self.center[1] + 6) - play.pos[1]) * (scale / 30) - scale * 3 / 8 + floor(scale / 40)
                     )
                 )
         return drawn

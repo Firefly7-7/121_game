@@ -7,7 +7,7 @@ from block_data import *
 from typing import Union
 from os.path import exists
 from math import floor, ceil
-from copy import deepcopy
+from copy import deepcopy, copy
 from constants import VERSION, ADDED_DEFAULT_UPDATE_BLOCK_ATTRIBUTES, LETTER_CODES, BLOCKS, BARRIERS, SAVE_CODE, SavingFieldGroups, FieldType
 from safe_paths import getpath
 import traceback
@@ -24,6 +24,7 @@ def make_blank_level() -> Level:
         {},
         [],
         [(1, 1)],
+        (6, 6)
     )
 
 
@@ -258,6 +259,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
                 block_data,
                 list(),
                 players,
+                (6, 6),
                 1
             )
         else:
@@ -381,6 +383,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             blocks,
             links,
             players,
+            (6, 6),
             2
         )
     elif level_string[0] == "3":
@@ -524,6 +527,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             blocks,
             links,
             players,
+            (6, 6),
             3
         )
     elif level_string[0] == "4":
@@ -539,6 +543,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             {},
             [],
             [],
+            (6, 6),
             4
         )
         # print(level.name, len(level_string), level.gravity)  # correct
@@ -647,12 +652,24 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
         # print(level.blocks.keys())
         return level
     elif level_string[0] == "5":
-        save_code = SAVE_CODE["4"]
+        save_code = copy(SAVE_CODE["4"])
         save_code.update(SAVE_CODE["5"])
         i1 = 3 + letter_code.index(level_string[1])
         # gets max length
         i1, x_l = decode_length_indicator(i1)
         i1, y_l = decode_length_indicator(i1)
+        x_c = 1
+        if level_string[i1] == "-":
+            x_c = -1
+            i1 += 1
+        x_c *= convert_from_b100(level_string[i1:i1 + x_l])
+        i1 += x_l
+        y_c = 1
+        if level_string[i1] == "-":
+            y_c = -1
+            i1 += 1
+        y_c *= convert_from_b100(level_string[i1:i1 + y_l])
+        i1 += y_l
         level = Level(
             level_string[2:3 + letter_code.index(level_string[1])],
             (letter_code.index(level_string[i1]),
@@ -660,6 +677,7 @@ def decode_level_from_string(level_string: str, published: bool = True) -> Union
             {},
             [],
             [],
+            (x_c, y_c),
             5
         )
         i1, players = decode_length_indicator(i1 + 2)  # find number of players
@@ -871,7 +889,7 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
 
     level_string = "5"  # version indicator
     letter_code = LETTER_CODES[level_string]
-    save_code = SAVE_CODE.get("4", {})
+    save_code = copy(SAVE_CODE.get("4", {}))
     save_code.update(SAVE_CODE.get("5", {}))
     level_string += letter_code[len(level_data.name) - 1] + level_data.name  # saves level name
     x_l = 0
@@ -887,6 +905,7 @@ def encode_level_to_string(level_data: Union[LevelWrap, Level]) -> str:
             x_l = max(x_l, required_length(coords[0]))
             y_l = max(y_l, required_length(coords[1]))
     level_string += make_length_indicator(x_l) + make_length_indicator(y_l)
+    level_string += convert_to_b100(level_data.center[0], x_l) + convert_to_b100(level_data.center[1], y_l)
     level_string += letter_code[level_data.gravity[0]] + letter_code[int(level_data.gravity[1] * -4)]  # saves gravity info
     level_string += make_length_indicator(len(level_data.player_starts))  # indicator for # of players
     for player in level_data.player_starts:

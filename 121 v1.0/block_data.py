@@ -1050,11 +1050,13 @@ class Portal(PointedBlock):
             case 1:
                 player.pos[0] += portal.other[Portal.x] * 30
                 player.pos[1] += portal.other[Portal.y] * 30
+            case 2:
+                player.pos[0] = (portal.coordinates[0] + portal.other[Portal.x]) * 30 + 15
+                player.pos[1] = (portal.coordinates[1] + portal.other[Portal.y]) * 30 + 15
         player.mom = [
             player.mom[0] * (1 - 2 * portal.other[Portal.reflect_x]),
             player.mom[1] * (1 - 2 * portal.other[Portal.reflect_y])
         ]
-        print(gravity[0])
         if portal.local:
             if 3 > gravity[0] > 0:
                 player.mom[(gravity[0] + 1) % 2] += gravity[1]
