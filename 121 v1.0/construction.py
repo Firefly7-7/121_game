@@ -380,8 +380,8 @@ class Construction(Utility):
                 if abs(mouse_pos[0] - 240 * 2) < self.level_display.get_width() / 2 - 2 and abs(
                         mouse_pos[1] - 180 * 2) < self.level_display.get_height() / 2 - 2:
                     mouse_coords = (
-                        round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5),
-                        round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5)
+                        round((mouse_pos[0] - 240 * 2 + self.level_display.get_width() / 2 - 1) / 40 + 0.5) + self.level_data.level_on.center[0] - 6,
+                        round(-1 * (mouse_pos[1] - 180 * 2 - self.level_display.get_height() / 2 + 1) / 40 + 0.5) + self.level_data.level_on.center[1] - 6
 
                     )
                 else:
