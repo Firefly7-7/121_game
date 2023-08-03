@@ -165,29 +165,29 @@ class PlayerEditing(ParentConstructionArea):
 
     name = "Players"
 
-    player_grabbed = None
+    player_grabbed = False
 
     @staticmethod
-    def grab_player(coords: tuple[int, int] = None) -> None:
+    def grab_player() -> None:
         """
         grabs a player, either from new player space or from game screen
-        :param coords: coordinates of game to grab from
         :return: None
         """
-        if coords is None:
-            PlayerEditing.player_grabbed = True
-        else:
-            PlayerEditing.player_grabbed = coords
-            # print(coords)
-            # print(cls.level_data.player_starts)
-            ParentConstructionArea.game_object.level_data.level_on.player_starts.remove(coords)
-            ParentConstructionArea.update_display()
-            button = 1
-            while True:
-                if PlayerEditing.buttons[button].arguments["coords"] is coords:
-                    del PlayerEditing.buttons[button]
-                    break
-                button += 1
+        PlayerEditing.player_grabbed = not PlayerEditing.player_grabbed
+        # if coords is None:
+        #     PlayerEditing.player_grabbed = True
+        # else:
+        #     PlayerEditing.player_grabbed = coords
+        #     # print(coords)
+        #     # print(cls.level_data.player_starts)
+        #     ParentConstructionArea.game_object.level_data.level_on.player_starts.remove(coords)
+        #     ParentConstructionArea.update_display()
+        #     button = 1
+        #     while True:
+        #         if PlayerEditing.buttons[button].arguments["coords"] is coords:
+        #             del PlayerEditing.buttons[button]
+        #             break
+        #         button += 1
 
     player_imgs = None
     scaled_player = None
@@ -210,39 +210,15 @@ class PlayerEditing(ParentConstructionArea):
             (ParentConstructionArea.construction_center, 200),
             "new player"
         ))
-        for coords in ParentConstructionArea.game_object.level_data.level_on.player_starts:
-            PlayerEditing.buttons.add_button(Button(
-                PlayerEditing.grab_player,
-                PlayerEditing.player_imgs[ParentConstructionArea.game_object.level_data.level_on.gravity[0]],
-                f"at {coords[0]}, {coords[1]}",
-                PlayerEditing.scaled_player.get_rect(center=(
-                    240 * 2 - ParentConstructionArea.display_width / 2 - 20 + 40 * coords[0] + 1,
-                    180 * 2 + ParentConstructionArea.display_width / 2 + 20 - 40 * coords[1] - 1
-                )),
-                inflate_center=(0.5, 0.5),
-                outline_width=0,
-                arguments={"coords": coords}
-            ))
 
     @staticmethod
     def click_tick(mouse_coords: tuple[int, int]) -> None:
-        if PlayerEditing.player_grabbed is not None and PlayerEditing.player_grabbed != mouse_coords:
-            if mouse_coords not in ParentConstructionArea.game_object.level_data.level_on.player_starts:
+        if PlayerEditing.player_grabbed:
+            if mouse_coords in ParentConstructionArea.game_object.level_data.level_on.player_starts:
+                ParentConstructionArea.game_object.level_data.level_on.player_starts.remove(mouse_coords)
+            else:
                 ParentConstructionArea.game_object.level_data.level_on.player_starts.append(mouse_coords)
-                PlayerEditing.buttons.add_button(Button(
-                    PlayerEditing.grab_player,
-                    PlayerEditing.scaled_player,
-                    f"at {mouse_coords[0]}, {mouse_coords[1]}",
-                    PlayerEditing.scaled_player.get_rect(center=(
-                        240 * 2 - PlayerEditing.display_width / 2 - 20 + 40 * mouse_coords[0] + 1,
-                        180 * 2 + PlayerEditing.display_width / 2 + 20 - 40 * mouse_coords[1] - 1
-                    )),
-                    inflate_center=(0.5, 0.5),
-                    outline_width=0,
-                    arguments={"coords": mouse_coords}
-                ))
-                PlayerEditing.update_display()
-                PlayerEditing.player_grabbed = None
+            PlayerEditing.update_display()
 
     @staticmethod
     def tick(mouse_pos: tuple[int, int], mouse_coords):
@@ -252,7 +228,7 @@ class PlayerEditing(ParentConstructionArea):
         :param mouse_coords:
         :return:
         """
-        if PlayerEditing.player_grabbed is not None:
+        if PlayerEditing.player_grabbed:
             ParentConstructionArea.game_object.screen.blit(
                 PlayerEditing.scaled_player,
                 (mouse_pos[0] - 15, mouse_pos[1] - 15)
