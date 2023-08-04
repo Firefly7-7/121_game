@@ -151,19 +151,6 @@ class Construction(Utility):
                     (0.5, 0.5),
                     outline_width=5
                 )
-                name_button_obj.arguments = {
-                    "button_obj": name_button_obj,
-                    "font": 75,
-                    "max_characters": 100,
-                    "min_characters": 2,
-                    "others": [
-                        (level_name_control_buttons[1], -0.5, 0, -40, 0),
-                        (level_name_control_buttons[2], 0.5, 0, 40, 0)
-                    ],
-                    "max_line_pixels": 240 * 6,
-                    "max_width": 512,
-                    "callback": self.level_data.rename
-                }
             level_name_control_buttons[0] = name_button_obj
 
             if self.constructing == 0:
@@ -188,6 +175,20 @@ class Construction(Utility):
                 override_text="Add new work in progress level." if self.constructing == len(
                     self.working_on) else "Next work in progress level."
             )
+            if isinstance(self.level_data, LevelWrap):
+                name_button_obj.arguments = {
+                    "button_obj": name_button_obj,
+                    "font": 75,
+                    "max_characters": 100,
+                    "min_characters": 2,
+                    "others": [
+                        (level_name_control_buttons[1], -0.5, 0, -40, 0),
+                        (level_name_control_buttons[2], 0.5, 0, 40, 0)
+                    ],
+                    "max_line_pixels": 240 * 6,
+                    "max_width": 512,
+                    "callback": self.level_data.rename
+                }
 
         def update_game_image() -> None:
             """

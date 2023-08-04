@@ -320,7 +320,7 @@ class Utility:
         :param center: center of the button to orient around
         :param instance: typing instance
         :param others: a list of other buttons to update positions of, with information
-        integer: button index
+        button object: button to reposition
         float: offset x by width
         float: offset y by height
         integer: static x offset
@@ -440,7 +440,7 @@ class Utility:
                             max_line_pixels, max_width, y_align, x_align, start_text)
 
         try:
-            while self.typing.instance == instance.instance:
+            while self.typing.instance == instance.instance and self.running:
                 if instance.text != current:
                     if len(instance.text) > max_characters > 0:
                         current = instance.text[0:max_characters]

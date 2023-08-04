@@ -25,7 +25,7 @@ class ParentConstructionArea(ABC):
     buttons = ButtonHolder()
     name_buttons = ButtonHolder()
     update_display: Callable = None
-    display_width: int = None
+    display_width: int = 442
     construction_center: int = None
     game_object = None
     construction_areas_available = list()
@@ -64,7 +64,7 @@ class ParentConstructionArea(ABC):
         :return:
         """
         ParentConstructionArea.update_display = update_level_display
-        ParentConstructionArea.display_width = game_object.level_display.get_width()
+        # ParentConstructionArea.display_width = game_object.level_display.get_width()
         ParentConstructionArea.construction_center = round(240 * 3 + ParentConstructionArea.display_width / 4)
         ParentConstructionArea.game_object = game_object
 
