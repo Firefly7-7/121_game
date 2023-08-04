@@ -1,7 +1,7 @@
 from platform import system
 import os
 import sys
-from os import listdir
+from os import listdir, remove
 
 
 def getpath(relative_path):
@@ -27,3 +27,7 @@ def getpath(relative_path):
 
 def safe_listdir(relative_path):
     return listdir(getpath(relative_path))
+
+
+def safe_remove(relative_path):
+    remove(getpath(relative_path))
