@@ -77,6 +77,10 @@ class LevelWrap:
         self.in_between_track: list[InGamePlayerInBetween] = []
         self.run_in_between: bool = False
 
+    @property
+    def name(self):
+        return self.level_on.name
+
     def next(self) -> bool:
         """
         gets next level data and prepares it if it exists.  Returns if there was a next one
@@ -166,19 +170,27 @@ class LevelWrap:
             if isinstance(val, ABCMeta):
                 val.priority_index = None
         priority_list: SortedList[BlockType] = SortedList()
+        negative_priority_list: SortedList[BlockType] = SortedList()
+
+        def add_to_priority(block_type: BlockType) -> None:
+            if block_type.collide_priority is None:
+                return
+            if block_type.collide_priority < 0:
+                if block_type not in negative_priority_list:
+                    negative_priority_list.add(block_type)
+            else:
+                if block_type not in priority_list:
+                    priority_list.add(block_type)
+
         for block in self.blocks.values():
             adding = block.type.declare_required()
             for add in adding:
-                if add.collide_priority is not None:
-                    if add not in priority_list:
-                        priority_list.add(add)
+                add_to_priority(add)
             for bar in block.barriers:
                 adding = bar[0].declare_required()
                 for add in adding:
-                    if add.collide_priority is not None:
-                        if add not in priority_list:
-                            priority_list.add(add)
-        priority_list: list[Union[BlockType, None]] = list(priority_list)
+                    add_to_priority(add)
+        priority_list: list[Union[BlockType, None]] = list(priority_list) + list(negative_priority_list)
         for index in range(len(priority_list)):
             priority_list[index].priority_list_index = index
         i = 1
@@ -188,6 +200,7 @@ class LevelWrap:
                 i += 1
             i += 1
         self.priority_list = tuple(priority_list)
+        print(self.priority_list)
         # prepare players
         self.players = [
             InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
@@ -235,6 +248,7 @@ class LevelWrap:
         # keeps track of blocks previously reacted on to prevent double reactions
         hit = set()
         # if has touched the ground on this one
+        print(blocks)
         for block in blocks:
             if block[0:2] in hit:
                 continue
@@ -294,7 +308,11 @@ class LevelWrap:
         for check in self.priority_list:
             if check is None:
                 if not self.alive or self.won:
+                    self.gravity = tuple(gravity)
                     return new_scheduled
+                if player.stop:
+                    for record in player.collision_record:
+                        record.clear()
             elif player.collision_record[check.priority_list_index]:
                 player.block_record.add(check)
                 check.collide(self, player, gravity, new_scheduled)

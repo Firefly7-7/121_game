@@ -844,7 +844,7 @@ class EasterEgg(GivesAchievement):
     level = 1
     skin = 2
     achievement = 3
-    collide_priority = 2.14
+    collide_priority = -1
 
     @staticmethod
     def collide(
@@ -1388,7 +1388,7 @@ class Coin(Destroys):
     name = "Coin"
     description = "In order to complete a level, all of these must be collected."
     solid = False
-    collide_priority = 2.12
+    collide_priority = -1
 
     @staticmethod
     def collide(
@@ -1435,7 +1435,7 @@ class Msg(HasTextField):
     description = "Displays a message."
     solid = False
     text = 0
-    collide_priority = 2.15
+    collide_priority = -1
 
     @staticmethod
     def collide(
@@ -1764,3 +1764,10 @@ def position_correction(
         case 3:
             player.pos[0] = block_coords[0] * 30 + 40.25
             player.mom[0] = max(0, player.mom[0])
+
+
+if __name__ == "__main__":
+    for val in Blocks.__dict__.values():
+        if isinstance(val, type):
+            if issubclass(val, BlockType):
+                print(f"\n{val.name}:\n{val.description}\nCollide Priority: {val.collide_priority}")

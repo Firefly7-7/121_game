@@ -105,7 +105,7 @@ class InGame(Utility):
                 self.alerts.add_alert
             )
         else:
-            def deny_special() -> None:
+            def deny_special(*args, **kwargs) -> None:
                 """
                 when in custom level or in construction, denies players collection of levels, achievements and skins
                 :return: nada
@@ -189,7 +189,7 @@ class InGame(Utility):
                     file.write(self.working_on[self.constructing])
 
                 self.look_at[1] = len(self.levels[1])
-                self.levels[1].append((self.level_data.name, False))
+                self.levels[1].append((self.level_data.level_on.name, False))
                 self.custom = 1
             elif self.after_game == "construction":
                 # TODO change this back to pass after export screen made
