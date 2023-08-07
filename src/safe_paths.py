@@ -2,7 +2,7 @@ from platform import system
 import os
 import sys
 from os import listdir, remove
-
+from showinfm import show_in_file_manager
 
 def getpath(relative_path):
     """ Handle paths cross-platform (thank you mac person)"""
@@ -31,3 +31,11 @@ def safe_listdir(relative_path):
 
 def safe_remove(relative_path):
     remove(getpath(relative_path))
+
+
+def safe_open_directory(args: list[str]) -> None:
+    """
+    tries to open a directory
+    :return:
+    """
+    show_in_file_manager(getpath("\\".join(args)))

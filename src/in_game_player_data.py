@@ -3,9 +3,10 @@ handles data for in game player data
 """
 
 
-from block_data import BlockType
+from block_data import BlockType, ControlEffect
 from copy import copy
 from game_structures import Collision
+from sortedcontainers import SortedList
 
 
 class InGamePlayer:
@@ -22,7 +23,7 @@ class InGamePlayer:
         """
         self.pos: list[int, float] = pos
         self.mom: list[int, float] = [0, 0]
-        self.block_record: set[BlockType] = set()
+        self.block_record: SortedList[ControlEffect] = SortedList()
         self.collision_record: tuple[list[Collision]] = tuple()
         self.scheduled: dict[tuple[int, int], tuple[int, int]] = dict()
         self.grounded: bool = False

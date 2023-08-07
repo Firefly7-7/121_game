@@ -123,6 +123,17 @@ class BlockType(ABC):
         return {cls}
 
 
+class ControlEffect(BlockType, ABC):
+    """
+    for blocks that have some sort of effect on friction, gravity, or such on the player when player hits them
+    """
+
+    friction_mult = 1  # 1: no change, if >= 0: = friction * val, if < 0: 1 - (friction - 1) * val
+    accel_mult = 1
+    jump_mult = 1
+    gravity_mult = 1
+
+
 @dataclass()
 class Block:
     """
@@ -597,13 +608,15 @@ class Lava(BlockType):
         return res
 
 
-class Ice(BasicSolid):
+class Ice(BasicSolid, ControlEffect):
     """
     class for ice block
     """
     name = "Ice"
     description = "A block that reduces friction dramatically when touched."
-    collide_priority = 2.04
+    collide_priority = 2.05
+
+    friction_mult = -0.25
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -612,13 +625,18 @@ class Ice(BasicSolid):
         return res
 
 
-class Mud(BasicSolid):
+class Mud(BasicSolid, ControlEffect):
     """
     class for mud block
     """
     name = "Mud"
     description = "A block that slows acceleration and increases friction while touching."
-    collide_priority = 2.05
+    collide_priority = 2.04
+
+    accel_mult = 0.5
+    friction_mult = 0.85 / 0.9
+    jump_mult = 0.5
+    gravity_mult = 1 / 1.85
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -627,13 +645,15 @@ class Mud(BasicSolid):
         return res
 
 
-class Sticky(BasicSolid):
+class Sticky(BasicSolid, ControlEffect):
     """
     class for sticky block
     """
     name = "Sticky"
     description = "A block that keeps the player from jumping while touching."
     collide_priority = 2.03
+
+    jump_mult = 0
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:

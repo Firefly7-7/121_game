@@ -17,11 +17,10 @@ from skin_management import draw_skin
 from block_data import Block, Blocks
 from level_data import LevelWrap
 from level_management import make_blank_level
-from showinfm import show_in_file_manager
 import logging
 import traceback
 import threading
-from safe_paths import safe_listdir
+from safe_paths import safe_listdir, safe_open_directory
 
 # from pyperclip import paste
 
@@ -196,7 +195,7 @@ class Utility:
             callback_error_fn=Utility.change_place
         )
         self.open_directory = self.add_error_checking(
-            self.open_directory,
+            safe_open_directory,
             "Opening directory failed.  See log file for more info.",
         )
 
@@ -243,13 +242,6 @@ class Utility:
             return res
 
         return error_wrap
-
-    def open_directory(self, args: list[str]) -> None:
-        """
-        tries to open a directory
-        :return:
-        """
-        show_in_file_manager("\\".join(args))
 
     def start_typing(self, start_text: str = "", button: Button = None) -> TypingData:
         """

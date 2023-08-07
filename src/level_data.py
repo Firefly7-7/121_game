@@ -2,7 +2,7 @@
 level class
 """
 from dataclasses import dataclass
-from block_data import Block, BlockType, Blocks
+from block_data import Block, BlockType, Blocks, ControlEffect
 from game_structures import Collision
 from typing import Union, Callable, Optional, Any
 from constants import BARRIER_COLORS
@@ -200,7 +200,6 @@ class LevelWrap:
                 i += 1
             i += 1
         self.priority_list = tuple(priority_list)
-        print(self.priority_list)
         # prepare players
         self.players = [
             InGamePlayer([player_x * 30 + 15, player_y * 30 + 15]) for player_x, player_y in self.level_on.player_starts
@@ -248,7 +247,6 @@ class LevelWrap:
         # keeps track of blocks previously reacted on to prevent double reactions
         hit = set()
         # if has touched the ground on this one
-        print(blocks)
         for block in blocks:
             if block[0:2] in hit:
                 continue
@@ -314,7 +312,8 @@ class LevelWrap:
                     for record in player.collision_record:
                         record.clear()
             elif player.collision_record[check.priority_list_index]:
-                player.block_record.add(check)
+                if issubclass(check, ControlEffect):
+                    player.block_record.add(check)
                 check.collide(self, player, gravity, new_scheduled)
                 player.collision_record[check.priority_list_index].clear()
         # if Blocks.lava in new_touched:
@@ -465,18 +464,32 @@ class LevelWrap:
         self.collision(player, run_reactions, False)
 
         # normal physics
-        if Blocks.mud in player.block_record:
-            sideways_accel = 0.75
-            jump_power = 6
-            gravity_strength = self.gravity[1] / 1.85
-            friction = 0.85
-        else:
-            sideways_accel = 1.5
-            jump_power = 12
-            gravity_strength = self.gravity[1]
-            friction = 0.9
-        if Blocks.ice in player.block_record:
-            friction = 1 - (1 - friction) * 0.25
+        sideways_accel = 1.5
+        jump_power = 12
+        gravity_strength = self.gravity[1]
+        friction = 0.9
+
+        for typ in player.block_record:
+            if typ.friction_mult >= 0:
+                friction *= typ.friction_mult
+            else:
+                friction = 1 - (friction - 1) * typ.friction_mult
+            sideways_accel *= typ.accel_mult
+            jump_power *= typ.jump_mult
+            gravity_strength *= typ.gravity_mult
+
+        # if Blocks.mud in player.block_record:
+        #     sideways_accel = 0.75
+        #     jump_power = 6
+        #     gravity_strength = self.gravity[1] / 1.85
+        #     friction = 0.85
+        # else:
+        #     sideways_accel = 1.5
+        #     jump_power = 12
+        #     gravity_strength = self.gravity[1]
+        #     friction = 0.9
+        # if Blocks.ice in player.block_record:
+        #     friction = 1 - (1 - friction) * 0.25
         # controls
         if self.control_check(self.right):
             player.mom[0] += cos(self.gravity[0]) * sideways_accel
@@ -484,7 +497,7 @@ class LevelWrap:
         if self.control_check(self.left):
             player.mom[0] -= cos(self.gravity[0]) * sideways_accel
             player.mom[1] -= sin(self.gravity[0]) * sideways_accel
-        if self.control_check(self.jump) and player.grounded and Blocks.sticky not in player.block_record:
+        if self.control_check(self.jump) and player.grounded:  # and Blocks.sticky not in player.block_record:
             player.mom[0] -= sin(self.gravity[0]) * jump_power
             player.mom[1] += cos(self.gravity[0]) * jump_power
         player.grounded = False
@@ -494,7 +507,7 @@ class LevelWrap:
         # friction
         player.mom[self.gravity[0] % 2] *= friction
         # track of if collisions find ground
-        player.block_record = set()
+        player.block_record = SortedList()
         # x collisions
 
         remaining_xm = player.mom[0]
