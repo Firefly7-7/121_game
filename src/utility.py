@@ -8,8 +8,7 @@ from game_structures import Button, ButtonHolder, TypingData, AlertHolder
 from typing import Callable, Union, Any
 from game_structures import ControlOption, FontHolder
 from player_data import load_player_data, empty_player_data
-from os.path import exists
-from sys import argv
+from sys import argv, exit
 from constants import LEVEL_LIST, EASTER_EGG_LEVELS, BLOCK_LIST, DEFAULT_SKINS, BASE_ACHIEVEMENTS, ADMIN_BLOCKS
 from gtts import gTTS
 from io import BytesIO
@@ -20,9 +19,49 @@ from level_management import make_blank_level
 import logging
 import traceback
 import threading
-from safe_paths import safe_listdir, safe_open_directory
+from safe_paths import safe_listdir, safe_open_directory, safe_exists, safe_remove
+from requests import get
+import subprocess
 
 # from pyperclip import paste
+
+if "--ignore_updates" not in argv:
+    if safe_exists("121.py"):
+        file_check = "version_source.txt"
+        req = False
+        version = "1.1"
+    elif safe_exists("121.exe"):
+        file_check = "version_windows.txt"
+        updater_download = "update.exe"
+        req = True
+        version = "1.1"
+    elif safe_exists("121.app"):
+        file_check = "version_mac.txt"
+        updater_download = "update.app"
+        req = True
+        version = "1.1"
+    else:
+        print("How/why are you running this?")
+        req = False
+    up_to_date = True
+
+    try:
+        r = get(f"https://firefly7-7.github.io/121/{file_check}")
+        if r.text != version:
+            up_to_date = False
+            if req:
+                updater_download_gotten = get(f"https://firefly7-7.github.io/121/{updater_download}")
+                with open(updater_download, "wb") as updater_file:
+                    updater_file.write(updater_download_gotten.content)
+                subprocess.Popen(updater_download)
+                exit()
+    except Exception:
+        pass
+else:
+    up_to_date = True
+
+if safe_exists(updater_download):
+    safe_remove(updater_download)
 
 
 def make_async(func: Callable) -> Callable:
@@ -63,7 +102,7 @@ class Utility:
         else:
             self.admin = False
 
-        if exists("player_data.dat"):
+        if safe_exists("player_data.dat"):
             player_data = load_player_data()
         else:
             player_data = empty_player_data()
@@ -198,6 +237,9 @@ class Utility:
             safe_open_directory,
             "Opening directory failed.  See log file for more info.",
         )
+
+        if not up_to_date:
+            self.alerts.add_alert("There is a new version available!  Consider updating.")
 
     def add_error_checking(
             self,

@@ -2,6 +2,7 @@ from platform import system
 import os
 import sys
 from os import listdir, remove
+from os.path import exists
 from showinfm import show_in_file_manager
 
 def getpath(relative_path):
@@ -39,3 +40,7 @@ def safe_open_directory(args: list[str]) -> None:
     :return:
     """
     show_in_file_manager(getpath("\\".join(args)))
+
+
+def safe_exists(relative_path):
+    return exists(getpath(relative_path))
