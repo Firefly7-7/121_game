@@ -24,27 +24,27 @@ from requests import get
 import subprocess
 
 # from pyperclip import paste
+updater_download = ""
+if safe_exists("121.py"):
+    file_check = "version_source.txt"
+    req = False
+    version = "1.1"
+elif safe_exists("121.exe"):
+    file_check = "version_windows.txt"
+    updater_download = "update.exe"
+    req = True
+    version = "1.1"
+elif safe_exists("121.app"):
+    file_check = "version_mac.txt"
+    updater_download = "update.app"
+    req = True
+    version = "1.1"
+else:
+    print("How/why are you running this?")
+    req = False
+up_to_date = True
 
 if "--ignore_updates" not in argv:
-    if safe_exists("121.py"):
-        file_check = "version_source.txt"
-        req = False
-        version = "1.1"
-    elif safe_exists("121.exe"):
-        file_check = "version_windows.txt"
-        updater_download = "update.exe"
-        req = True
-        version = "1.1"
-    elif safe_exists("121.app"):
-        file_check = "version_mac.txt"
-        updater_download = "update.app"
-        req = True
-        version = "1.1"
-    else:
-        print("How/why are you running this?")
-        req = False
-    up_to_date = True
-
     try:
         root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
         r = get(root + file_check)
