@@ -45,6 +45,8 @@ elif safe_exists("121.app"):  # from mac app (check w/ mac person to make sure t
 else:
     print("How/why are you running this?")
 
+root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
+
 
 def fetch_updates():
     """
@@ -53,17 +55,17 @@ def fetch_updates():
     """
     global status
     try:
-        r = requests.get("https://firefly7-7.github.io/121/premade_levels.txt")
+        r = requests.get(root + "premade_levels.txt")
         for level in r.text.split("\n"):
-            lvl = requests.get(f"https://firefly7-7.github.io/121/premade_levels/{level.replace(' ', '%20')}.txt")
+            lvl = requests.get(f"https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/premade_levels/{level.replace(' ', '%20')}.txt")
             with open(getpath(f"premade_levels/{level}.txt"), "w") as lvl_file:
                 lvl_file.write(lvl.text)
-        r = requests.get("https://firefly7-7.github.io/121/easter_eggs.txt")
+        r = requests.get(root + "easter_eggs.txt")
         for level in r.text.split("\n"):
-            lvl = requests.get(f"https://firefly7-7.github.io/121/easter_eggs/{level.replace(' ', '%20')}.txt")
+            lvl = requests.get(f"https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/easter_eggs/{level.replace(' ', '%20')}.txt")
             with open(getpath(f"easter_eggs/{level}.txt"), "w") as lvl_file:
                 lvl_file.write(lvl.text)
-        r = requests.get(f"https://firefly7-7.github.io/121/{file_name}")
+        r = requests.get(root + file_name)
         with open(getpath(file_name), "wb") as exe:
             exe.write(r.content)
         status_message.set("Update successfully installed, please close the window to re-launch the game!")

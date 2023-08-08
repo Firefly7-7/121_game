@@ -46,11 +46,12 @@ if "--ignore_updates" not in argv:
     up_to_date = True
 
     try:
-        r = get(f"https://firefly7-7.github.io/121/{file_check}")
+        root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
+        r = get(root + file_check)
         if r.text != version:
             up_to_date = False
             if req:
-                updater_download_gotten = get(f"https://firefly7-7.github.io/121/{updater_download}")
+                updater_download_gotten = get(root + updater_download)
                 with open(updater_download, "wb") as updater_file:
                     updater_file.write(updater_download_gotten.content)
                 subprocess.Popen(updater_download)
