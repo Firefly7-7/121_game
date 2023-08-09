@@ -66,6 +66,8 @@ def get(path: str) -> str:
     if path.startswith("https:"):
         return requests.get(path.replace(' ', '%20')).text
     else:
+        if path.startswith("~"):
+            path = getpath(path[1:])
         with open(path, 'r') as file_obj:
             res = file_obj.read()
         return res
@@ -75,6 +77,8 @@ def get_bytes(path: str) -> bytes:
     if path.startswith("https:"):
         return requests.get(path.replace(' ', '%20')).content
     else:
+        if path.startswith("~"):
+            path = getpath(path[1:])
         with open(path, 'rb') as file_obj:
             res = file_obj.read()
         return res
