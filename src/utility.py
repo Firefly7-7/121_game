@@ -22,8 +22,6 @@ import traceback
 import threading
 from safe_paths import safe_listdir, safe_open_directory, safe_exists
 
-# from pyperclip import paste
-
 
 def make_async(func: Callable) -> Callable:
     """
@@ -83,8 +81,6 @@ class Utility:
                     player_data.level_on += 1
             while player_data.level_list[i][0] in easter_egg_levels:
                 i += 1
-                # if lvl != player_data.level_list[i][0]:
-                #     player_data.level_list.insert(i, (lvl, False))  # lvl name, completed
             i += 1
 
         self.achievements = set(player_data.achievements)

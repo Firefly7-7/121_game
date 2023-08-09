@@ -52,6 +52,8 @@ else:
 up_to_date = True
 
 if "--ignore_updates" not in argv:
+    root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
+    version_check = None
     updater_version = None
     updater_path = None
     if safe_exists("121_testing.txt"):
@@ -65,11 +67,16 @@ if "--ignore_updates" not in argv:
                         updater_path = args[1]
                     case "game_version":
                         version = args[1]
+                    case "version_check_path":
+                        version_check = args[1]
+                    case "root":
+                        root = args[1]
+    if version_check is None:
+        version_check = root
 
     try:
-        root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
         if updater_version is None:
-            updater_version = get(root + file_check).text
+            updater_version = get(version_check + file_check).text
         if compare_verbose_versions(version, updater_version):
             up_to_date = False
             if req:

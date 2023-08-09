@@ -17,7 +17,7 @@ from pygame.draw import line, circle
 from pygame.transform import smoothscale
 from sortedcontainers import SortedList
 from abc import ABCMeta
-import traceback
+# import traceback
 
 
 @dataclass()
@@ -242,8 +242,6 @@ class LevelWrap:
         :param player: player object that is doing the colliding
         :return: constructed new touched objects
         """
-        # print(f"Collision called on {blocks}.")
-        # print(block_info.keys())
         # keeps track of blocks previously reacted on to prevent double reactions
         hit = set()
         # if has touched the ground on this one
@@ -316,48 +314,6 @@ class LevelWrap:
                     player.block_record.add(check)
                 check.collide(self, player, gravity, new_scheduled)
                 player.collision_record[check.priority_list_index].clear()
-        # if Blocks.lava in new_touched:
-        #     Blocks.lava.collide(new_touched[Blocks.lava], cls, player, gravity, new_scheduled)
-        # if not cls.alive or cls.won:
-        #     return new_scheduled
-        # if Blocks.goal in new_touched:
-        #     Blocks.goal.collide(new_touched[Blocks.goal], cls, player, gravity, new_scheduled)
-        # if Blocks.achievement_goal in new_touched:
-        #     Blocks.achievement_goal.collide(new_touched[Blocks.achievement_goal], cls, player, gravity, new_scheduled)
-        # if not cls.alive or cls.won:
-        #     return new_scheduled
-        # if Blocks.bouncy in new_touched:
-        #     Blocks.bouncy.collide(new_touched[Blocks.bouncy], cls, player, gravity, new_scheduled)
-        # if Blocks.ground in new_touched:
-        #     Blocks.ground.collide(new_touched[Blocks.ground], cls, player, gravity, new_scheduled)
-        # if Blocks.fragile_ground in new_touched:
-        #     Blocks.fragile_ground.collide(new_touched[Blocks.fragile_ground], cls, player, gravity, new_scheduled)
-        # if Blocks.sticky in new_touched:
-        #     Blocks.sticky.collide(new_touched[Blocks.sticky], cls, player, gravity, new_scheduled)
-        # if Blocks.ice in new_touched:
-        #     Blocks.ice.collide(new_touched[Blocks.ice], cls, player, gravity, new_scheduled)
-        # if Blocks.mud in new_touched:
-        #     Blocks.mud.collide(new_touched[Blocks.mud], cls, player, gravity, new_scheduled)
-        # if Blocks.jump in new_touched:
-        #     Blocks.jump.collide(new_touched[Blocks.jump], cls, player, gravity, new_scheduled)
-        # if Blocks.repel in new_touched:
-        #     Blocks.repel.collide(new_touched[Blocks.repel], cls, player, gravity, new_scheduled)
-        # if Blocks.gravity in new_touched:
-        #     Blocks.gravity.collide(new_touched[Blocks.gravity], cls, player, gravity, new_scheduled)
-        # if Blocks.activator in new_touched:
-        #     Blocks.activator.collide(new_touched[Blocks.activator], cls, player, gravity, new_scheduled)
-        # if Blocks.destroyer in new_touched:
-        #     Blocks.destroyer.collide(new_touched[Blocks.destroyer], cls, player, gravity, new_scheduled)
-        # if Blocks.rotator in new_touched:
-        #     Blocks.rotator.collide(new_touched[Blocks.rotator], cls, player, gravity, new_scheduled)
-        # if Blocks.coin in new_touched:
-        #     Blocks.coin.collide(new_touched[Blocks.coin], cls, player, gravity, new_scheduled)
-        # if Blocks.portal in new_touched:
-        #     Blocks.portal.collide(new_touched[Blocks.portal], cls, player, gravity, new_scheduled)
-        # if Blocks.easter_egg in new_touched:
-        #     Blocks.easter_egg.collide(new_touched[Blocks.easter_egg], cls, player, gravity, new_scheduled)
-        # if Blocks.msg in new_touched:
-        #     Blocks.msg.collide(new_touched[Blocks.msg], cls, player, gravity, new_scheduled)
         self.gravity = tuple(gravity)
         return new_scheduled
 
@@ -478,18 +434,6 @@ class LevelWrap:
             jump_power *= typ.jump_mult
             gravity_strength *= typ.gravity_mult
 
-        # if Blocks.mud in player.block_record:
-        #     sideways_accel = 0.75
-        #     jump_power = 6
-        #     gravity_strength = self.gravity[1] / 1.85
-        #     friction = 0.85
-        # else:
-        #     sideways_accel = 1.5
-        #     jump_power = 12
-        #     gravity_strength = self.gravity[1]
-        #     friction = 0.9
-        # if Blocks.ice in player.block_record:
-        #     friction = 1 - (1 - friction) * 0.25
         # controls
         if self.control_check(self.right):
             player.mom[0] += cos(self.gravity[0]) * sideways_accel
@@ -540,35 +484,11 @@ class LevelWrap:
                 return
             if player.stop:
                 remaining_xm = 0
-                # if (player.mom[0] > 0) == start_sign or player.mom[0] == 0:
-                #     remaining_xm = 0
-                # else:
-                #     remaining_xm *= -1
-                #     player.pos[0] -= 30 * step
                 break
-            # if (player.mom[0] > 0) != start_sign and player.mom[0] != 0:
-            #     start_sign = player.mom[0] > 0
-            #     if self.gravity[0] % 2 == 1:
-            #         player.mom[0] += self.gravity[1] * (self.gravity[0] - 2) / 2
-            #     remaining_xm = player.mom[0]
-            #     step *= -1
-            #     remain = abs(
-            #         int(player.pos[0] + player.mom[0] + 10 * step) // 30 - int(player.pos[0] + 10 * step) // 30)
-            #     if remain > 0:
-            #         x_init = int(player.pos[0] + 10 * step) // 30
-            #         x_next = x_init + (1 - step) / 2
-            #         req_x = x_next * 30 - 10 * step
-            #         disp = req_x - player.pos[0]
-            #         player.pos[0] += disp
-            #         remaining_xm -= disp
         player.pos[0] += remaining_xm
-        # if not cls.alive:
-        #     return
-        # ground = ground or new_ground
 
         remaining_ym = player.mom[1]
         step = (player.mom[1] > 0) * 2 - 1
-        start_sign = player.mom[1] > 0
         reps = abs(int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
         if reps > 0:
             y_init = int(player.pos[1] + 10 * step) // 30
@@ -596,27 +516,7 @@ class LevelWrap:
                 return
             if player.stop:
                 remaining_ym = 0
-                # if (player.mom[1] > 0) != start_sign or player.mom[1] == 0:
-                #     remaining_ym = 0
-                # else:
-                #     remaining_ym *= -1
-                #     player.pos[1] -= 30 * step
                 break
-            # if (player.mom[1] > 0) != start_sign and player.mom[1] != 0:
-            #     start_sign = player.mom[1] > 0
-            #     if self.gravity[0] == 0:
-            #         player.mom[1] += self.gravity[1]
-            #     remaining_ym = player.mom[1]
-            #     step *= -1
-            #     remain = abs(
-            #         int(player.pos[1] + player.mom[1] + 10 * step) // 30 - int(player.pos[1] + 10 * step) // 30)
-            #     if remain > 0:
-            #         y_init = int(player.pos[1] + 10 * step) // 30
-            #         y_next = y_init + (1 - step) / 2
-            #         req_y = y_next * 30 - 10 * step
-            #         disp = req_y - player.pos[1]
-            #         player.pos[1] += disp
-            #         remaining_ym -= disp
         player.pos[1] += remaining_ym
 
         # bounds
@@ -644,62 +544,6 @@ class LevelWrap:
             player.pos[1] = (self.center[1] + 6) * 30 - self.bounds
             if self.gravity[0] == 2:
                 player.grounded = True
-
-        # p_x += p_xm
-        # if p_xm > 0:
-        #     if (p_x + 10) // 30 != (p_x - p_xm + 10) // 30:
-        #         (p_x, p_y), (p_xm, p_ym), add_touched, add_reactions, new_ground = collision(
-        #             [
-        #                 (int((p_x + 10) // 30), int((p_y + 10) // 30), 1),
-        #                 (int((p_x + 10) // 30), int((p_y - 10) // 30), 1)
-        #             ],
-        #             (p_x, p_y),
-        #             (p_xm, p_ym),
-        #             True,
-        #         )
-        # else:
-        #     if (p_x - 10) // 30 != (p_x - p_xm - 10) // 30:
-        #         (p_x, p_y), (p_xm, p_ym), add_touched, add_reactions, new_ground = collision(
-        #             [
-        #                 (int((p_x - 10) // 30), int((p_y + 10) // 30), 3),
-        #                 (int((p_x - 10) // 30), int((p_y - 10) // 30), 3)
-        #             ],
-        #             (p_x, p_y),
-        #             (p_xm, p_ym),
-        #             True,
-        #         )
-        # new_block_record.update(add_touched)
-        # if not cls.alive:
-        #     return (p_x, p_y), (p_xm, p_ym), new_block_record, add_reactions, ground
-        # ground = ground or new_ground
-        # scheduled_merge(time, scheduled, add_reactions)
-
-        # # y move
-        # p_y += p_ym  # / (frame_skip + 1)
-        # # y collisions
-        # if p_ym > 0:
-        #     if (p_y + 10) // 30 != (p_y - p_ym + 10) // 30:
-        #         (p_x, p_y), (p_xm, p_ym), add_touched, add_reactions, new_ground = collision(
-        #             [
-        #                 (int((p_x + 10) // 30), int((p_y + 10) // 30), 2),
-        #                 (int((p_x - 10) // 30), int((p_y + 10) // 30), 2)
-        #             ],
-        #             (p_x, p_y),
-        #             (p_xm, p_ym),
-        #             True
-        #         )
-        # else:
-        #     if (p_y - 10) // 30 != (p_y - p_ym - 10) // 30:
-        #         (p_x, p_y), (p_xm, p_ym), add_touched, add_reactions, new_ground = collision(
-        #             [
-        #                 (int((p_x - 10) // 30), int((p_y - 10) // 30), 0),
-        #                 (int((p_x + 10) // 30), int((p_y - 10) // 30), 0)
-        #             ],
-        #             (p_x, p_y),
-        #             (p_xm, p_ym),
-        #             True
-        #         )
-        # finish
         return
 
     def tick(self):

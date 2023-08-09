@@ -8,9 +8,7 @@ import traceback
 import tkinter as tk
 from platform import system
 import os
-# import sys
 import subprocess
-# from platform import system
 
 
 def getpath(relative_path):
@@ -47,7 +45,7 @@ else:
     print("How/why are you running this?")
 
 root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
-levels_path = root
+levels_path = None
 levels_directory_path = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/"
 if safe_exists("121_testing.txt"):
     with open("121_testing.txt", "r") as testing_data:
@@ -60,6 +58,10 @@ if safe_exists("121_testing.txt"):
                     levels_directory = args[1]
                 case "runnable_path":
                     root = args[1]
+                case "root":
+                    root = args[1]
+if levels_path is None:
+    levels_path = root
 
 
 def get(path: str) -> str:
@@ -89,7 +91,6 @@ def fetch_updates():
     fetches updates
     :return:
     """
-    global status
     try:
         r = get(levels_path + "premade_levels.txt")
         for level in r.split("\n"):
