@@ -43,9 +43,41 @@ if safe_exists("121.exe"):  # from windows executable
 elif safe_exists("121.app"):  # from mac app (check w/ mac person to make sure this works)
     file_name = "121.app"
 else:
+    file_name = "uh___"
     print("How/why are you running this?")
 
 root = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/update_data/"
+levels_path = root
+levels_directory_path = "https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/"
+if safe_exists("121_testing.txt"):
+    with open("121_testing.txt", "r") as testing_data:
+        for line in testing_data.readlines():
+            args = line.strip().split("=")
+            match args[0]:
+                case "levels_list_path":
+                    levels_path = args[1]
+                case "levels_directory_path":
+                    levels_directory = args[1]
+                case "runnable_path":
+                    root = args[1]
+
+
+def get(path: str) -> str:
+    if path.startswith("https:"):
+        return requests.get(path.replace(' ', '%20')).text
+    else:
+        with open(path, 'r') as file_obj:
+            res = file_obj.read()
+        return res
+
+
+def get_bytes(path: str) -> bytes:
+    if path.startswith("https:"):
+        return requests.get(path.replace(' ', '%20')).content
+    else:
+        with open(path, 'rb') as file_obj:
+            res = file_obj.read()
+        return res
 
 
 def fetch_updates():
@@ -55,19 +87,19 @@ def fetch_updates():
     """
     global status
     try:
-        r = requests.get(root + "premade_levels.txt")
-        for level in r.text.split("\n"):
-            lvl = requests.get(f"https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/premade_levels/{level.replace(' ', '%20')}.txt")
+        r = get(levels_path + "premade_levels.txt")
+        for level in r.split("\n"):
+            lvl = get(f"{levels_directory_path}premade_levels/{level}.txt")
             with open(getpath(f"premade_levels/{level}.txt"), "w") as lvl_file:
-                lvl_file.write(lvl.text)
-        r = requests.get(root + "easter_eggs.txt")
-        for level in r.text.split("\n"):
-            lvl = requests.get(f"https://raw.githubusercontent.com/Firefly7-7/121_game/main/src/easter_eggs/{level.replace(' ', '%20')}.txt")
+                lvl_file.write(lvl)
+        r = get(levels_path + "easter_eggs.txt")
+        for level in r.split("\n"):
+            lvl = get(f"{levels_directory_path}easter_eggs/{level}.txt")
             with open(getpath(f"easter_eggs/{level}.txt"), "w") as lvl_file:
-                lvl_file.write(lvl.text)
-        r = requests.get(root + file_name)
+                lvl_file.write(lvl)
+        r = get_bytes(root + file_name)
         with open(getpath(file_name), "wb") as exe:
-            exe.write(r.content)
+            exe.write(r)
         status_message.set("Update successfully installed, please close the window to re-launch the game!")
     except:
         status_message.set(
