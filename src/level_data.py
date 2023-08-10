@@ -227,6 +227,26 @@ class LevelWrap:
         new_scheduled = self.execute_collisions(player)
         scheduled_merge(self.time, player.scheduled, new_scheduled)
 
+    def add_collision_to_player_collision_list(
+            self,
+            collision: Collision,
+            typ: BlockType,
+            player: InGamePlayer
+    ):
+        if typ.priority_list_index is None:
+            return
+        # i = 0
+        # while i < len(player.collision_record[typ.priority_list_index]):
+        #     col = player.collision_record[typ.priority_list_index][i]
+        #     if col.local:
+        #         i += 1
+        #         continue
+        #     if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
+        #         del player.collision_record[typ.priority_list_index][i]
+        #         break
+        #     i += 1
+        player.collision_record[typ.priority_list_index].append(collision)
+
     def get_collisions(
             self,
             blocks: list[tuple[int, int, int]],
@@ -243,12 +263,13 @@ class LevelWrap:
         :return: constructed new touched objects
         """
         # keeps track of blocks previously reacted on to prevent double reactions
-        hit = set()
+        # hit = set()
+        hit_links = set()
         # if has touched the ground on this one
         for block in blocks:
-            if block[0:2] in hit:
-                continue
-            hit.add(block[0:2])
+            # if block[0:2] in hit:
+            #     continue
+            # hit.add(block[0:2])
             col = self.blocks.get(block[0:2])
             if col is None:
                 continue
@@ -269,23 +290,34 @@ class LevelWrap:
                         block[0:2]
                     )
                     typ = bar[0]
-            if typ.priority_list_index is not None:
-                player.collision_record[typ.priority_list_index].append(add)
+            self.add_collision_to_player_collision_list(add, typ, player)
             if add.link is not None:
-                for link_block in self.links[add.link]:
-                    # checks if the block has already been collided with
-                    if link_block in hit:
-                        continue
-                    # registers that the block has been hit
-                    hit.add(link_block)
-                    link_block_info = self.blocks[link_block]
-                    if link_block_info.type.priority_list_index is not None:
-                        player.collision_record[link_block_info.type.priority_list_index].append(Collision(
-                            block[2],
-                            False,
-                            link_block,
-                            link_block_info.other
-                        ))
+                if add.link not in hit_links:
+                    hit_links.add(add.link)
+                    for link_block in self.links[add.link]:
+                        # checks if the block has already been collided with
+                        # if link_block in hit:
+                        #     continue
+                        # # registers that the block has been hit
+                        # hit.add(link_block)
+                        link_block_info = self.blocks[link_block]
+                        if link_block_info.type.priority_list_index is not None:
+                            self.add_collision_to_player_collision_list(
+                                Collision(
+                                    block[2],
+                                    False,
+                                    link_block,
+                                    link_block_info.other
+                                ),
+                                link_block_info.type,
+                                player
+                            )
+                            # player.collision_record[link_block_info.type.priority_list_index].append(Collision(
+                            #     block[2],
+                            #     False,
+                            #     link_block,
+                            #     link_block_info.other
+                            # ))
 
     # noinspection PyTypeChecker
     def execute_collisions(
