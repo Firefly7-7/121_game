@@ -292,9 +292,9 @@ class LevelWrap:
                     typ = bar[0]
             self.add_collision_to_player_collision_list(add, typ, player)
             if add.link is not None:
-                print(add.link)
+                # print(add.link)
                 if add.link not in hit_links:
-                    print("Propagated")
+                    # print("Propagated")
                     hit_links.add(add.link)
                     for link_block in self.links[add.link]:
                         # checks if the block has already been collided with
