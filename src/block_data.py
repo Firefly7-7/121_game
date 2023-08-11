@@ -1339,7 +1339,6 @@ class Rotator(RotationChooseBlock, VariableValue):
             block: Block,
             coordinates: tuple[int, int]
     ):
-        print(force, check.local, check.coordinates)
         if not Rotator.determine_activate(force, check.local):
             return
         block_rotate = check.other[Rotator.variable_value]
