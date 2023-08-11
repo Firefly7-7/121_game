@@ -235,16 +235,16 @@ class LevelWrap:
     ):
         if typ.priority_list_index is None:
             return
-        # i = 0
-        # while i < len(player.collision_record[typ.priority_list_index]):
-        #     col = player.collision_record[typ.priority_list_index][i]
-        #     if col.local:
-        #         i += 1
-        #         continue
-        #     if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
-        #         del player.collision_record[typ.priority_list_index][i]
-        #         break
-        #     i += 1
+        i = 0
+        while i < len(player.collision_record[typ.priority_list_index]):
+            col = player.collision_record[typ.priority_list_index][i]
+            if col.local:
+                i += 1
+                continue
+            if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
+                del player.collision_record[typ.priority_list_index][i]
+                break
+            i += 1
         player.collision_record[typ.priority_list_index].append(collision)
 
     def get_collisions(
