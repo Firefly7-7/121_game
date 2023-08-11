@@ -1339,6 +1339,7 @@ class Rotator(RotationChooseBlock, VariableValue):
             block: Block,
             coordinates: tuple[int, int]
     ):
+        print(force, check.local, check.coordinates)
         if not Rotator.determine_activate(force, check.local):
             return
         block_rotate = check.other[Rotator.variable_value]
@@ -1372,7 +1373,7 @@ class Rotator(RotationChooseBlock, VariableValue):
             (data[Rotator.rotation] - (1 - data[Rotator.grav_locked]) * gravity) % 4,
             tuple(((1 - data[Rotator.grav_locked]) * 255,) * 3),
             scale,
-            2 - data[Rotator.mode] + data[Rotator.grav_account]
+            2 - data[Rotator.mode] + (data[Rotator.grav_account] is True)
         )
         circle(
             res,

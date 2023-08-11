@@ -17,7 +17,7 @@ from pygame.draw import line, circle
 from pygame.transform import smoothscale
 from sortedcontainers import SortedList
 from abc import ABCMeta
-# import traceback
+import traceback
 
 
 @dataclass()
@@ -235,16 +235,16 @@ class LevelWrap:
     ):
         if typ.priority_list_index is None:
             return
-        # i = 0
-        # while i < len(player.collision_record[typ.priority_list_index]):
-        #     col = player.collision_record[typ.priority_list_index][i]
-        #     if col.local:
-        #         i += 1
-        #         continue
-        #     if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
-        #         del player.collision_record[typ.priority_list_index][i]
-        #         break
-        #     i += 1
+        i = 0
+        while i < len(player.collision_record[typ.priority_list_index]):
+            col = player.collision_record[typ.priority_list_index][i]
+            if col.local:
+                i += 1
+                continue
+            if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
+                del player.collision_record[typ.priority_list_index][i]
+                break
+            i += 1
         player.collision_record[typ.priority_list_index].append(collision)
 
     def get_collisions(
@@ -292,7 +292,9 @@ class LevelWrap:
                     typ = bar[0]
             self.add_collision_to_player_collision_list(add, typ, player)
             if add.link is not None:
+                print(add.link)
                 if add.link not in hit_links:
+                    print("Propagated")
                     hit_links.add(add.link)
                     for link_block in self.links[add.link]:
                         # checks if the block has already been collided with
@@ -677,7 +679,8 @@ class LevelWrap:
                 circle(res, degree_to_rgb(block.link * 54), (scale / 4, scale / 4), scale / 16)
             return res
         except:
-            # traceback.print_exc()
+            print(block.type, block.barriers, block.other)
+            traceback.print_exc()
             return Blocks.error_block.render([], 0, font, scale)
 
     def rename(self, name: str):
