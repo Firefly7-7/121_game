@@ -73,7 +73,7 @@ def save_level(level: LevelWrap) -> None:
     """
     prepend = "custom_levels/"
     name = f"{prepend}{level.level_on.name}.txt"
-    with open(name, "w", encoding="utf-8") as file:
+    with open(getpath(name), "w", encoding="utf-8") as file:
         file.write(encode_level_to_string(level.level_on))
 
 
