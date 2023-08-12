@@ -40,6 +40,8 @@ if safe_exists("121.exe"):  # from windows executable
     file_name = "121.exe"
 elif safe_exists("121.app"):  # from mac app (check w/ mac person to make sure this works)
     file_name = "121.app"
+elif safe_exists("121"):  # from unix executable (check w/ mac person to make sure this works)
+    file_name = "121"
 else:
     file_name = "uh___"
     print("How/why are you running this?")
