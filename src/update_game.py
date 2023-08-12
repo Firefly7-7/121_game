@@ -46,6 +46,11 @@ elif safe_exists("121.app"):
     updater_download = "update.app"
     req = True
     version = "1.1"
+elif safe_exists("121"):
+    file_check = "version_unix.txt"
+    updater_download = "update"
+    req = True
+    version = "1.1"
 else:
     print("How/why are you running this?")
     req = False
