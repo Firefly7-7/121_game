@@ -116,6 +116,7 @@ def fetch_updates():
 
 
 window = tk.Tk()
+window.title("121 Updater")
 status_message = tk.StringVar()
 status_message.set("An update for 121 was found!  Please wait until it completes!")
 txt = tk.Label(textvariable=status_message)
