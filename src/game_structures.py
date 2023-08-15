@@ -2,16 +2,46 @@
 a module containing classes for various game structures
 button
 """
+import traceback
 from dataclasses import dataclass
 from typing import Union, Callable, Any, Optional
 from abc import ABC, abstractmethod
 
 from pygame.font import Font, SysFont
 from pygame.transform import scale
-from pygame import Rect, Surface
+from pygame import Rect, Surface, SRCALPHA
 from pygame.draw import rect
 from pygame.mixer import music
 from pygame.constants import USEREVENT
+
+
+class FontHolder:
+    """
+    class to hold required fonts dynamically
+    """
+
+    def __init__(self, name: str = None) -> None:
+        self.fonts = dict()
+        self.font_name = name
+
+    def new_fonts(self, name) -> None:
+        """
+        change font in the holder
+        :param name: name of new font
+        :return: None
+        """
+        self.font_name = name
+        self.fonts.clear()
+
+    def __getitem__(self, key: Union[int, float]) -> Font:
+        """
+        gets item from holder
+        :param key: size to look for
+        :return: Font object
+        """
+        if key not in self.fonts.keys():
+            self.fonts[key] = SysFont(self.font_name, int(key))
+        return self.fonts[key]
 
 
 class ButtonHolderTemplate(ABC):
@@ -78,6 +108,165 @@ class ButtonHolderTemplate(ABC):
         gets hover keyed text
         :return:
         """
+
+    fonts = FontHolder()
+
+    @staticmethod
+    def draw_text(
+            text: str,
+            font: int,
+            background_color: Union[tuple[int, int, int], tuple[int, int, int, int], None] = (255, 255, 255, 255),
+            outline_color: tuple[int, int, int] = (0, 0, 0),
+            max_line_pixels: int = 0,
+            max_line_words: int = 0,
+            max_width: int = 0,
+            preserve_words: bool = True,
+            text_align: float = 0,
+            max_lines: int = 0,
+            enforce_width: int = 0
+    ) -> Surface:
+        """
+        draws text
+        :param text: string
+        :param font: font size
+        :param background_color: background color for the text
+        :param outline_color: color used for text and border
+        :param max_line_pixels: maximum number of pixels in a line, 0 for disabled
+        :param max_line_words: maximum number of words in a line, 0 for disabled
+        :param max_width: maximum pixels in line, scales down to match
+        :param preserve_words: whether or not to preserve words when considering max line pixels
+        :param text_align: left (0) to right (1) alignment of text
+        :param max_lines: maximum lines in the text display
+        :param enforce_width: enforce a width for the display
+        :return: drawn text
+        """
+        lines = [""]
+        word = ""
+        words = 0
+        draw_font = ButtonHolder.fonts[font]
+        for char in text + " ":
+            if char == "\n":
+                if word != "":
+                    if lines[-1] == "":
+                        lines[-1] = word
+                    else:
+                        lines[-1] += " " + word
+                    word = ""
+                if len(lines) == max_lines:
+                    if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
+                        backstep = -1
+                        while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
+                            backstep -= 1
+                            if backstep >= len(lines[-1]):
+                                break
+                        lines[-1] = lines[-1][:backstep] + "..."
+                    else:
+                        lines[-1] += "..."
+                    break
+                else:
+                    lines.append("")
+                words = 0
+            elif char == " ":
+                if lines[-1] == "":
+                    lines[-1] = word
+                elif preserve_words and max_line_pixels > 0:
+                    if lines[-1] == "":
+                        length = draw_font.size(word)
+                    else:
+                        length = draw_font.size(lines[-1] + " " + word)[0]
+                    if length > max_line_pixels:
+                        if len(lines) == max_lines:
+                            if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
+                                backstep = -1
+                                while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
+                                    backstep -= 1
+                                    if backstep >= len(lines[-1]):
+                                        break
+                                lines[-1] = lines[-1][:backstep] + "..."
+                            else:
+                                lines[-1] += "..."
+                            break
+                        else:
+                            lines.append(word)
+                        words = 0
+                    else:
+                        if lines[-1] == "":
+                            lines[-1] = word
+                        else:
+                            lines[-1] += " " + word
+                else:
+                    if lines[-1] == "":
+                        lines[-1] = word
+                    else:
+                        lines[-1] += " " + word
+                word = ""
+                words += 1
+                if words >= max_line_words > 0:
+                    words = 0
+                    if len(lines) == max_lines:
+                        if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
+                            backstep = -1
+                            while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
+                                backstep -= 1
+                                if backstep >= len(lines[-1]):
+                                    break
+                            lines[-1] = lines[-1][:backstep] + "..."
+                        else:
+                            lines[-1] += "..."
+                        break
+                    else:
+                        lines.append("")
+            else:
+                if max_line_pixels > 0:
+                    if lines[-1] == "":
+                        length = draw_font.size(word + char)[0]
+                    else:
+                        length = draw_font.size(lines[-1] + " " + word + char)[0]
+                    if length > max_line_pixels:
+                        if len(lines) == max_lines:
+                            if lines[-1] == "":
+                                lines[-1] = word
+                            else:
+                                lines[-1] += " " + word
+                            if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
+                                backstep = -1
+                                while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
+                                    backstep -= 1
+                                    if backstep >= len(lines[-1]):
+                                        break
+                                lines[-1] = lines[-1][:backstep] + "..."
+                            else:
+                                lines[-1] += "..."
+                            break
+                        else:
+                            if not preserve_words:
+                                lines[-1] += word
+                                word = ""
+                            lines.append("")
+                        words = 0
+                word += char
+        if max_width > 0:
+            max_length = 0
+            for line in lines:
+                max_length = max(max_length, draw_font.size(line)[0])
+            if max_length > max_width:
+                draw_font = ButtonHolder.fonts[font * max_width / max_length]
+        if enforce_width == 0:
+            max_length = 0
+            for i in range(len(lines)):
+                lines[i] = draw_font.render(lines[i], True, outline_color, None)
+                max_length = max(max_length, lines[i].get_width())
+        else:
+            max_length = enforce_width
+            for i in range(len(lines)):
+                lines[i] = draw_font.render(lines[i], True, outline_color, None)
+        linesize = draw_font.get_linesize()
+        text_surface = Surface((max_length, linesize * len(lines)), SRCALPHA)
+        if background_color is not None:
+            text_surface.fill(background_color)
+        for i in range(len(lines)):
+            text_surface.blit(lines[i], (text_align * (max_length - lines[i].get_width()), i * linesize))
+        return text_surface
 
 
 class Button(ButtonHolderTemplate):
@@ -751,35 +940,6 @@ class AlertHolder:
             )
             height += img_height
         return surface
-
-
-class FontHolder:
-    """
-    class to hold required fonts dynamically
-    """
-
-    def __init__(self, name: str) -> None:
-        self.fonts = dict()
-        self.font_name = name
-
-    def new_fonts(self, name) -> None:
-        """
-        change font in the holder
-        :param name: name of new font
-        :return: None
-        """
-        self.font_name = name
-        self.fonts.clear()
-
-    def __getitem__(self, key: Union[int, float]) -> Font:
-        """
-        gets item from holder
-        :param key: size to look for
-        :return: Font object
-        """
-        if key not in self.fonts.keys():
-            self.fonts[key] = SysFont(self.font_name, int(key))
-        return self.fonts[key]
 
 
 @dataclass()

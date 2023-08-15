@@ -238,10 +238,10 @@ class LevelWrap:
         i = 0
         while i < len(player.collision_record[typ.priority_list_index]):
             col = player.collision_record[typ.priority_list_index][i]
-            if col.local:
-                i += 1
-                continue
-            if col.other is collision.other and col.coordinates == collision.coordinates and collision.local:
+            # if col.local:
+            #     i += 1
+            #     continue
+            if col.other == collision.other and col.coordinates == collision.coordinates and collision.local:
                 del player.collision_record[typ.priority_list_index][i]
                 break
             i += 1

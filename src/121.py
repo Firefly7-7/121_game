@@ -11,6 +11,7 @@ from credits import Credits
 from construction import Construction
 from player_data import PlayerData, save_player_data
 from achievements import Achievements
+from utility import log_error
 
 
 class Game(Start, Options, LevelSelect, EnterAndExit, Tutorial, Credits, Construction, Achievements):
@@ -61,7 +62,7 @@ class Game(Start, Options, LevelSelect, EnterAndExit, Tutorial, Credits, Constru
                 else:
                     raise ValueError(f"Area '{self.place}' does not exist.")
         except Exception as e:
-            self.log_error(e)
+            log_error(e)
             raise e
         finally:
             controls = dict()

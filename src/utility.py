@@ -37,6 +37,85 @@ def make_async(func: Callable) -> Callable:
     return async_func
 
 
+def add_error_checking(
+        func: Callable,
+        message: str = "Error occurred during execution!  Details added to log.",
+        *callback_args,
+        callback_error_fn: Callable = None,
+        callback_done_fn: Callable = None,
+        callback_finally_fn: Callable = None,
+) -> Callable:
+    """
+    adds error handling to a callable
+    :param func:
+    :param message: error message
+    :param callback_args: arguments passed to callback errors, if any
+    :param callback_error_fn: gjkawjhh idk callback stuff
+    :param callback_done_fn: callback if finished successfully
+    :param callback_finally_fn: callback for end, no matter what
+    :return:
+    """
+
+    def error_wrap(*args, **kwargs) -> Any:
+        """
+        interior try/except wrap
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        try:
+            res = func(*args, **kwargs)
+            if callback_done_fn is not None:
+                callback_done_fn(*callback_args)
+        except Exception as exc:
+            res = None
+            log_error(exc)
+            alerts.add_alert(message)
+            if callback_error_fn is not None:
+                callback_error_fn(*callback_args)
+        finally:
+            if callback_finally_fn is not None:
+                callback_finally_fn(*callback_args)
+        return res
+
+    return error_wrap
+
+
+def log_error(exc: Exception) -> None:
+    """
+    logs an error.  Requires there to be an error.
+    :return:
+    """
+    stack: traceback.StackSummary = traceback.extract_tb(exc.__traceback__)
+    if not admin:
+        root = argv[0][:len(argv[0]) - 6].replace("/", "\\")
+        for frame in stack:
+            if frame.filename.startswith(root):
+                frame.filename = frame.filename[len(root):]
+            else:
+                frame.filename = "<filename outside of program, obscured for privacy>"
+    logging.error("".join(traceback.format_exception(exc)))
+
+
+if len(argv) >= 2 and argv[1] == "admin":
+    admin = True
+    for block in ADMIN_BLOCKS:
+        BLOCK_LIST.append(block)
+else:
+    admin = False
+
+alerts = AlertHolder(
+    width=512,
+    size=20,
+    max_alerts=5,
+    speed=10,
+    speak=None,
+    draw=ButtonHolder.draw_text,
+    border_buffer=5,
+    lifespan=300
+)
+
+
 class Utility:
     """
     utility superclass.  Also the initialization function
@@ -54,12 +133,7 @@ class Utility:
         self.button_hover_next_key = pygame.K_TAB
         self.button_hover_press_key = pygame.K_RETURN
 
-        if len(argv) == 2 and argv[1] == "admin":
-            self.admin = True
-            for block in ADMIN_BLOCKS:
-                BLOCK_LIST.append(block)
-        else:
-            self.admin = False
+        self.admin = admin
 
         if safe_exists("player_data.dat"):
             player_data = load_player_data()
@@ -144,7 +218,8 @@ class Utility:
         add_control("TTS", True, "bool")
         add_control("Death Timer", 1, "range", [0, 2.1, 0.1])  # 9
 
-        self.fonts = FontHolder(self.controls[6].args[self.controls[6].value])
+        self.fonts = ButtonHolder.fonts
+        self.fonts.new_fonts(self.controls[6].args[self.controls[6].value])
         self.keyed = self.controls[7].value
         self.tts = self.controls[8].value
         self.last_spoken = ""
@@ -169,78 +244,26 @@ class Utility:
         self.typing = TypingData()
         pygame.key.set_repeat(500, 125)
 
-        self.alerts = AlertHolder(
-            width=512,
-            size=20,
-            max_alerts=5,
-            speed=10,
-            speak=self.speak,
-            draw=self.draw_text,
-            border_buffer=5,
-            lifespan=300
-        )
+        self.alerts = alerts
+        alerts.speak.speach = self.speak
 
         logging.basicConfig(filename="errors.log",
                             format='%(asctime)s\n%(message)s',
                             filemode='a')
-        self.in_game_place = self.add_error_checking(
+        self.in_game_place = add_error_checking(
             self.in_game_place,
             "An error occurred in game!  Check the log file for more info.",
             self,
             "exit_level",
             callback_error_fn=Utility.change_place
         )
-        self.open_directory = self.add_error_checking(
+        self.open_directory = add_error_checking(
             safe_open_directory,
             "Opening directory failed.  See log file for more info.",
         )
 
         if not up_to_date:
             self.alerts.add_alert("There is a new version available!  Consider updating.")
-
-    def add_error_checking(
-            self,
-            func: Callable,
-            message: str = "Error occurred during execution!  Details added to log.",
-            *callback_args,
-            callback_error_fn: Callable = None,
-            callback_done_fn: Callable = None,
-            callback_finally_fn: Callable = None,
-    ) -> Callable:
-        """
-        adds error handling to a callable
-        :param func:
-        :param message: error message
-        :param callback_args: arguments passed to callback errors, if any
-        :param callback_error_fn: gjkawjhh idk callback stuff
-        :param callback_done_fn: callback if finished successfully
-        :param callback_finally_fn: callback for end, no matter what
-        :return:
-        """
-
-        def error_wrap(*args, **kwargs) -> Any:
-            """
-            interior try/except wrap
-            :param args:
-            :param kwargs:
-            :return:
-            """
-            try:
-                res = func(*args, **kwargs)
-                if callback_done_fn is not None:
-                    callback_done_fn(*callback_args)
-            except Exception as exc:
-                res = None
-                self.log_error(exc)
-                self.alerts.add_alert(message)
-                if callback_error_fn is not None:
-                    callback_error_fn(*callback_args)
-            finally:
-                if callback_finally_fn is not None:
-                    callback_finally_fn(*callback_args)
-            return res
-
-        return error_wrap
 
     def start_typing(self, start_text: str = "", button: Button = None) -> TypingData:
         """
@@ -325,10 +348,10 @@ class Utility:
         """
         if instance is not None and button_obj.typing_instance != instance:
             return
-        new_img = self.draw_text(new_text, font, max_line_pixels=max_line_pixels, preserve_words=True)
+        new_img = Button.draw_text(new_text, font, max_line_pixels=max_line_pixels, preserve_words=True)
         width = new_img.get_width()
         if width > max_width > 0:
-            new_img = self.draw_text(
+            new_img = Button.draw_text(
                 new_text,
                 round(font * max_width / width),
                 max_line_pixels=round(max_line_pixels * max_width / width),
@@ -589,7 +612,7 @@ class Utility:
         :param enforce_width: enforces if lines can go over this width
         :return: a constructed button to be added to the list
         """
-        text_surface = self.draw_text(
+        text_surface = ButtonHolder.draw_text(
             text,
             font,
             background_color,
@@ -626,163 +649,6 @@ class Utility:
             special_press=special
         )
 
-    def draw_text(
-            self,
-            text: str,
-            font: int,
-            background_color: Union[tuple[int, int, int], tuple[int, int, int, int], None] = (255, 255, 255, 255),
-            outline_color: tuple[int, int, int] = (0, 0, 0),
-            max_line_pixels: int = 0,
-            max_line_words: int = 0,
-            max_width: int = 0,
-            preserve_words: bool = True,
-            text_align: float = 0,
-            max_lines: int = 0,
-            enforce_width: int = 0
-    ) -> pygame.surface.Surface:
-        """
-        draws text
-        :param text: string
-        :param font: font size
-        :param background_color: background color for the text
-        :param outline_color: color used for text and border
-        :param max_line_pixels: maximum number of pixels in a line, 0 for disabled
-        :param max_line_words: maximum number of words in a line, 0 for disabled
-        :param max_width: maximum pixels in line, scales down to match
-        :param preserve_words: whether or not to preserve words when considering max line pixels
-        :param text_align: left (0) to right (1) alignment of text
-        :param max_lines: maximum lines in the text display
-        :param enforce_width: enforce a width for the display
-        :return: drawn text
-        """
-        lines = [""]
-        word = ""
-        words = 0
-        draw_font = self.fonts[font]
-        for char in text + " ":
-            if char == "\n":
-                if word != "":
-                    if lines[-1] == "":
-                        lines[-1] = word
-                    else:
-                        lines[-1] += " " + word
-                    word = ""
-                if len(lines) == max_lines:
-                    if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
-                        backstep = -1
-                        while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
-                            backstep -= 1
-                            if backstep >= len(lines[-1]):
-                                break
-                        lines[-1] = lines[-1][:backstep] + "..."
-                    else:
-                        lines[-1] += "..."
-                    break
-                else:
-                    lines.append("")
-                words = 0
-            elif char == " ":
-                if lines[-1] == "":
-                    lines[-1] = word
-                elif preserve_words and max_line_pixels > 0:
-                    if lines[-1] == "":
-                        length = draw_font.size(word)
-                    else:
-                        length = draw_font.size(lines[-1] + " " + word)[0]
-                    if length > max_line_pixels:
-                        if len(lines) == max_lines:
-                            if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
-                                backstep = -1
-                                while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
-                                    backstep -= 1
-                                    if backstep >= len(lines[-1]):
-                                        break
-                                lines[-1] = lines[-1][:backstep] + "..."
-                            else:
-                                lines[-1] += "..."
-                            break
-                        else:
-                            lines.append(word)
-                        words = 0
-                    else:
-                        if lines[-1] == "":
-                            lines[-1] = word
-                        else:
-                            lines[-1] += " " + word
-                else:
-                    if lines[-1] == "":
-                        lines[-1] = word
-                    else:
-                        lines[-1] += " " + word
-                word = ""
-                words += 1
-                if words >= max_line_words > 0:
-                    words = 0
-                    if len(lines) == max_lines:
-                        if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
-                            backstep = -1
-                            while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
-                                backstep -= 1
-                                if backstep >= len(lines[-1]):
-                                    break
-                            lines[-1] = lines[-1][:backstep] + "..."
-                        else:
-                            lines[-1] += "..."
-                        break
-                    else:
-                        lines.append("")
-            else:
-                if max_line_pixels > 0:
-                    if lines[-1] == "":
-                        length = draw_font.size(word + char)[0]
-                    else:
-                        length = draw_font.size(lines[-1] + " " + word + char)[0]
-                    if length > max_line_pixels:
-                        if len(lines) == max_lines:
-                            if lines[-1] == "":
-                                lines[-1] = word
-                            else:
-                                lines[-1] += " " + word
-                            if draw_font.size(lines[-1] + "...")[0] > max_line_pixels:
-                                backstep = -1
-                                while draw_font.size(lines[-1][:backstep] + "...")[0] > max_line_pixels:
-                                    backstep -= 1
-                                    if backstep >= len(lines[-1]):
-                                        break
-                                lines[-1] = lines[-1][:backstep] + "..."
-                            else:
-                                lines[-1] += "..."
-                            break
-                        else:
-                            if not preserve_words:
-                                lines[-1] += word
-                                word = ""
-                            lines.append("")
-                        words = 0
-                word += char
-        if max_width > 0:
-            max_length = 0
-            for line in lines:
-                max_length = max(max_length, draw_font.size(line)[0])
-            if max_length > max_width:
-                draw_font = self.fonts[font * max_width / max_length]
-        if enforce_width == 0:
-            max_length = 0
-            for i in range(len(lines)):
-                lines[i] = draw_font.render(lines[i], True, outline_color, None)
-                max_length = max(max_length, lines[i].get_width())
-        else:
-            max_length = enforce_width
-            for i in range(len(lines)):
-                lines[i] = draw_font.render(lines[i], True, outline_color, None)
-        linesize = draw_font.get_linesize()
-        text_surface = pygame.Surface((max_length, linesize * len(lines)), pygame.SRCALPHA)
-        if background_color is not None:
-            text_surface.fill(background_color)
-        for i in range(len(lines)):
-            text_surface.blit(lines[i], (text_align * (max_length - lines[i].get_width()), i * linesize))
-        return text_surface
-
     def blit_text(
             self,
             text: str,
@@ -818,7 +684,7 @@ class Utility:
         :param surface: what to draw it on (if not the screen)
         :return: None
         """
-        text = self.draw_text(
+        text = Button.draw_text(
             text,
             font,
             background_color,
@@ -917,21 +783,6 @@ class Utility:
         for con in self.controls:
             if con.name == name:
                 return con.value
-
-    def log_error(self, exc: Exception) -> None:
-        """
-        logs an error.  Requires there to be an error.
-        :return:
-        """
-        stack: traceback.StackSummary = traceback.extract_tb(exc.__traceback__)
-        if not self.admin:
-            root = argv[0][:len(argv[0]) - 6].replace("/", "\\")
-            for frame in stack:
-                if frame.filename.startswith(root):
-                    frame.filename = frame.filename[len(root):]
-                else:
-                    frame.filename = "<filename outside of program, obscured for privacy>"
-        logging.error("".join(traceback.format_exception(exc)))
 
     def check_pressed(self, key: int) -> bool:
         """

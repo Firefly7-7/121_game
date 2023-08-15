@@ -5,6 +5,7 @@ plays the game
 from utility import Utility
 from pygame.transform import rotate
 from pygame.time import get_ticks
+from game_structures import ButtonHolder
 
 
 class InGame(Utility):
@@ -27,7 +28,7 @@ class InGame(Utility):
             :param text: text of message
             :return: None
             """
-            self.message = self.draw_text(
+            self.message = ButtonHolder.draw_text(
                 text,
                 16,
                 max_line_pixels=128,

@@ -35,7 +35,7 @@ updater_download = "but"
 if safe_exists("121.py"):
     file_check = "version_source.txt"
     req = False
-    version = "1.1.0.1"
+    version = "1.1.0.2"
 elif safe_exists("121.exe"):
     file_check = "version_windows.txt"
     updater_download = "update.exe"

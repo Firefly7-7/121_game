@@ -106,11 +106,11 @@ class Construction(Utility):
             if not isinstance(self.level_data, LevelWrap):
 
                 name = "ERROR"
-                name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+                name_button = ButtonHolder.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
 
                 width = name_button.get_width()
                 if width > 512:
-                    name_button = self.draw_text(
+                    name_button = ButtonHolder.draw_text(
                         name,
                         75 * 512 / width,
                         max_line_pixels=240 * 6 * 512 / width,
@@ -130,11 +130,11 @@ class Construction(Utility):
             else:
                 if name is None:
                     name = self.level_data.level_on.name
-                name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+                name_button = ButtonHolder.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
 
                 width = name_button.get_width()
                 if width > 512:
-                    name_button = self.draw_text(
+                    name_button = ButtonHolder.draw_text(
                         name,
                         75 * 512 / width,
                         max_line_pixels=240 * 6 * 512 / width,
@@ -196,12 +196,12 @@ class Construction(Utility):
             :return: None
             """
             if isinstance(self.level_data, TypeError):
-                self.level_display = self.draw_text(
+                self.level_display = ButtonHolder.draw_text(
                     "Level does not have a valid version indicator.",
                     40
                 )
             elif isinstance(self.level_data, ValueError):
-                self.level_display = self.draw_text(
+                self.level_display = ButtonHolder.draw_text(
                     "There was an error loading level.",
                     40
                 )

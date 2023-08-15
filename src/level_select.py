@@ -3,7 +3,7 @@ contains class for level select area
 """
 
 from level_management import unpack_level, decode_safety_wrap, save_level, encode_level_to_string
-from utility import Utility, LEVEL_LIST
+from utility import Utility, LEVEL_LIST, add_error_checking
 from pyperclip import paste, copy
 from safe_paths import safe_listdir, safe_remove
 from pygame import Surface
@@ -123,13 +123,13 @@ class LevelSelect(Utility):
                     special_press="Play",
                     max_width=256
                 ))
-            name_button = self.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
+            name_button = Button.draw_text(name, 75, max_line_pixels=240 * 6, preserve_words=True)
             height = name_button.get_height()
             width = name_button.get_width() + (
                     self.levels[self.custom][self.look_at[self.custom]][
                         1] / 2 + 5 * (name not in LEVEL_LIST and self.custom == 0) / 8) * height
             if width > 512:
-                name_button = self.draw_text(
+                name_button = Button.draw_text(
                     name,
                     75 * 512 / width,
                     max_line_pixels=240 * 6 * 512 / width,
@@ -240,7 +240,7 @@ class LevelSelect(Utility):
         # 2: make level [static] (done)
         # 3: edit level [unstatic] (done)
 
-        @self.add_error_checking
+        @add_error_checking
         def edit_current() -> None:
             """
             moves to construction area to edit current level
@@ -302,7 +302,7 @@ class LevelSelect(Utility):
         # 5: name [unstatic] (done)
         # 6: import from keyboard [static] (done, versions untested)
 
-        @self.add_error_checking
+        @add_error_checking
         def import_from_clipboard() -> None:
             """
             imports a level from clipboard
@@ -335,7 +335,7 @@ class LevelSelect(Utility):
         # 8: -1 level button [dynamic] (done)
         # 9: +1 level button [dynamic] (done)
 
-        @self.add_error_checking
+        @add_error_checking
         def copy_level(level: LevelWrap) -> None:
             """
             copies level data to clipboard
