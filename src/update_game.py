@@ -82,7 +82,7 @@ if "--ignore_updates" not in argv:
     try:
         if updater_version is None:
             updater_version = get(version_check + file_check).text
-        if compare_verbose_versions(version, updater_version):
+        if compare_verbose_versions(version, updater_version) or "--force_updates" in argv:
             up_to_date = False
             if req:
                 if updater_path is None:
@@ -92,7 +92,7 @@ if "--ignore_updates" not in argv:
                         updater_download_gotten = file_obj.read()
                 with open(updater_download, "wb") as updater_file:
                     updater_file.write(updater_download_gotten)
-                subprocess.Popen(updater_download)
+                subprocess.Popen([updater_download] + argv[1:])
                 exit()
     except Exception:
         traceback.print_exc()

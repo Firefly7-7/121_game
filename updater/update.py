@@ -128,5 +128,5 @@ thread.start()
 window.mainloop()
 
 if status_message.get() == "Update successfully installed, please close the window to re-launch the game!":
-    subprocess.Popen([file_name, "--ignore_updates"])
+    subprocess.Popen([file_name] + sys.argv[1:] + ["--ignore_updates"])
 sys.exit()
