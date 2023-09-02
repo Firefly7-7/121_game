@@ -10,7 +10,7 @@ from game_structures import Button, ButtonHolder
 from pygame.mouse import get_pos, get_pressed
 from pygame.transform import smoothscale, rotate
 from construction_areas import ParentConstructionArea, PlayerEditing, GravityEditing, BlockEditing, BarrierEditing, LinkEditing
-from block_data import Blocks, Block
+from block_data import Blocks, Block, GivesAchievement
 from render_help import cos, sin
 
 
@@ -80,21 +80,15 @@ class Construction(Utility):
                 for direction in range(0, 4):
                     re_center_buttons.add_button(Button.make_img_button(
                         change_center,
-                        self.level_data.draw_block(
-                            Block(
-                                Blocks.air,
-                                [(Blocks.ground, False, (True, True, True, True))]
-                            ),
-                            self.fonts[BarrierEditing.scale],
-                            scale=16
-                        ),
+                        None,
                         (
                             240 * 2 + 240 * cos(direction),
                             180 * 2 - 240 * sin(direction)
                         ),
-                        ("move up", "move right", "move down", "move left")[direction],
+                        ("move right", "move up", "move left", "move down")[direction],
                         arguments={"direction": direction}
                     ))
+            update_centering_button_imgs()
             update_name_placard()
             ParentConstructionArea.update_construction_area(0)
 
@@ -370,6 +364,41 @@ class Construction(Utility):
                 self.level_data.level_on.center[1] + sin(direction)
             )
             update_game_image()
+            update_centering_button_imgs()
+
+        def update_centering_button_imgs() -> None:
+            """
+            sets the images for the recentering buttons
+            :return:
+            """
+            record = [0, 0, 0, 0]
+            block_determination = [Blocks.air, Blocks.ground, Blocks.easter_egg, Blocks.goal]
+            for coordinates in self.level_data.blocks:
+                block_whole = None
+                for i in range(4):
+                    if (coordinates[i % 2] - self.level_data.center[i % 2]) * [1, 1, -1, -1][i] > 5:
+                        if block_whole is None:
+                            block_whole = self.level_data.blocks[coordinates]
+                        for block in [block_whole.type] + [bar[0] for bar in block_whole.barriers]:
+                            if block is Blocks.air:
+                                pass
+                            elif block is Blocks.goal or issubclass(block, Blocks.goal):
+                                record[i] = max(record[i], 3)
+                            elif issubclass(block, GivesAchievement):
+                                record[i] = max(record[i], 2)
+                            else:
+                                record[i] = max(record[i], 1)
+
+            for i in range(4):
+                re_center_buttons[i].img = self.level_data.draw_block(
+                    Block(
+                        block_determination[record[i]],
+                        [(Blocks.ground, False, (True, True, True, True))]
+                    ),
+                    self.fonts[BarrierEditing.scale],
+                    scale=16
+                )
+                re_center_buttons[i].rect = re_center_buttons[i].img.get_rect(center=re_center_buttons[i].rect.center)
 
         mouse_down = False
         click_tick = False

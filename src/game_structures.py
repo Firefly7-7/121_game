@@ -374,7 +374,7 @@ class Button(ButtonHolderTemplate):
             click,
             img,
             button_name,
-            img.get_rect(center=center),
+            Rect(center, (0, 0)) if img is None else img.get_rect(center=center),
             inflate_center=inflate_center,
             arguments=arguments,
             scale_factor=scale_factor,
@@ -387,6 +387,10 @@ class Button(ButtonHolderTemplate):
         draw onto a surface
         :return:
         """
+        if self.img is None:
+            return
+        if self.rect is None:
+            return
         if self.click is not None and (self.rect.collidepoint(mouse_pos) or self.keyed):
             # mouse is over or keyed clicker is on
 
@@ -445,6 +449,8 @@ class Button(ButtonHolderTemplate):
         checks if mouse is on the button when mouse button is pressed, and if so, recursively
         :return:
         """
+        if self.rect is None:
+            return False
         if self.rect.collidepoint(mouse_pos):
             return self.run_click()
         return False

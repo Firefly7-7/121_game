@@ -546,8 +546,9 @@ class Goal(BlockType):
     solid = False
     collide_priority = 1
 
-    @staticmethod
+    @classmethod
     def collide(
+            cls,
             level: Wrap,
             player: IGP,
             gravity: list[int, float],
@@ -567,6 +568,13 @@ class Goal(BlockType):
             )
         else:
             level.won = True
+            cls.post_win(level, player)
+
+
+    @staticmethod
+    def post_win(level, player):
+        pass
+
 
     @staticmethod
     def render(data: list[Any], gravity: int, font: Font, scale: int = 60) -> Surface:
@@ -930,7 +938,7 @@ class Repel(AdvancedSolid):
         :param pre_collision_momentum:
         :return:
         """
-        if isinstance(check.other, tuple) or check.other[Blocks.repel.mode] == 0:
+        if isinstance(check.other, tuple) or check.other[Repel.mode] == 0:
             if check.direction % 2 == 0:
                 player.mom[1] = -16.25 * (check.direction - 1)
             else:
@@ -1504,29 +1512,9 @@ class AchievementGoal(GivesAchievement, Goal):
     collide_priority = 1.1
 
     @staticmethod
-    def collide(
-            level: Wrap,
-            player: IGP,
-            gravity: list[int, float],
-            new_scheduled: dict[tuple[int, int], tuple[int, int]]
-    ) -> None:
-        """
-        colliding
-        :param level: level data to modify
-        :param player: which player is doing the collision (modify its data)
-        :param gravity: gravity data to manipulate
-        :param new_scheduled: newly scheduled block updates
-        :return: nada
-        """
-        if Coin in {level.blocks[block].type for block in level.blocks}:
-            level.text_output(
-                "You must collect all coins before reaching the goal."
-            )
-        else:
-            for check in player.collision_record[AchievementGoal.priority_list_index]:
-                level.achievements(
-                    level.blocks[check.coordinates[0:2]].other[Blocks.achievement_goal.achievement])
-            level.won = True
+    def post_win(level, player):
+        for check in player.collision_record[AchievementGoal.priority_list_index]:
+            level.achievements(check.other[AchievementGoal.achievement])
 
 
 class ReCenter(HasCoordinates, AdvancedSolid):
@@ -1758,6 +1746,7 @@ class Blocks:
     air = Air
     error_block = ErrorBlock
     re_center = ReCenter
+
 
 def position_correction(
         block_coords: tuple[int, int],
