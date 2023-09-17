@@ -46,7 +46,12 @@ def unpack_level(level_name: str, custom: int, easter_egg: bool = False) -> Unio
     name = getpath(f"{prepend}{level_name}.txt")
     if exists(name):
         with open(name, "r", encoding="utf-8") as file:
-            data = file.read()
+            try:
+                data = file.read()
+            except:
+                print(name)
+                traceback.print_exc()
+                return IOError("File could not be read")
         return decode_safety_wrap(data)
     return None
 

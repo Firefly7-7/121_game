@@ -49,9 +49,10 @@ class LevelSelect(Utility):
                 self.replace_button(9, None)
                 self.replace_button(10, None)
                 return
-            name = self.levels[self.custom][self.look_at[self.custom]][0]
+            orig_name = self.levels[self.custom][self.look_at[self.custom]][0]
+            name = orig_name
             self.level_data = unpack_level(
-                name,
+                orig_name,
                 self.custom,
                 name not in LEVEL_LIST and self.custom == 0
             )
@@ -85,6 +86,19 @@ class LevelSelect(Utility):
                 self.level_display = None
                 self.replace_button(1, self.make_text_button(
                     f"There was an error loading level '{name}'.",
+                    40,
+                    None,
+                    (240 * 2, 180 * 2),
+                    max_line_pixels=480,
+                    preserve_words=True,
+                    text_align=0.5
+                ))
+                self.replace_button(3, None)
+                self.replace_button(10, None)
+            elif isinstance(self.level_data, IOError):
+                self.level_display = None
+                self.replace_button(1, self.make_text_button(
+                    f"There was an error reading the file for '{name}'.",
                     40,
                     None,
                     (240 * 2, 180 * 2),
@@ -153,7 +167,8 @@ class LevelSelect(Utility):
                 name_desc += ", Completed"
             else:
                 name_placard.blit(name_button, (0, 0))
-            if name not in LEVEL_LIST and self.custom == 0:
+            if orig_name not in LEVEL_LIST and self.custom == 0 and isinstance(self.level_data, LevelWrap):
+                # print(name)
                 name_placard.blit(
                     self.level_data.draw_block(Block(EasterEgg, []), self.fonts[50], 5 * height / 8),
                     (width - 5 * height / 8, 3 * height / 16)

@@ -444,7 +444,7 @@ NAME: str = "player_data"
 
 # for setting up player data with correct level list
 # noinspection IncorrectFormatting
-LEVEL_LIST: tuple[str, ...] = ("Baby Crawl", "Jump!", "Parkour", "Leap", "Hops", "Danger!", "Lava Pools", "The Needle", "Weaving", "Gravity!", "Around the World", "Double Jump", "20 Seconds Later", "I Believe I can Fly", "Across the World", "Repulsion", "Around the Core", "Barriers", "Wall Jump", "One Way or Another", "Tap and Tap Again", "Sliding", "Slip n Slide", "Hot Feet", "More Sliding", "Ice Shelves", "Air and Links", "Gravity Collider", "No Jumping for you!", "Linked Effect", "Boing", "High Stakes Bouncing", "Fragility", "Ice Climber", "Campaigns", "Loop de Loop", "Turning", "Turn Around", "Removal", "Destruction", "Two", "Weird Jump", "Currency", "Flip Flop", "FTL", "Wormholes", "Four", "The End...")
+LEVEL_LIST: tuple[str, ...] = ("Baby Crawl", "Jump!", "Parkour", "Leap", "Hops", "Danger!", "Lava Pools", "The Needle", "Weaving", "Gravity!", "Around the World", "Double Jump", "20 Seconds Later", "I Believe I can Fly", "Across the World", "Repulsion", "Around the Core", "Barriers", "Wall Jump", "One Way or Another", "Tap and Tap Again", "Sliding", "Slip n Slide", "Hot Feet", "More Sliding", "Ice Shelves", "Air and Links", "Gravity Collider", "Gravity Maze", "No Jumping for you!", "Linked Effect", "Boing", "High Stakes Bouncing", "Fragility", "Ice Climber", "Campaigns", "Offscreen", "Recentering", "Scrolling", "Loop de Loop", "Tower Climb", "Turning", "Turn Around", "Removal", "Destruction", "Two", "Weird Jump", "Currency", "Flip Flop", "Dual Climber", "FTL", "Wormholes", "Side to side", "Four", "The End...")
 
 CONSTRUCTION_MENUS: tuple[str, ...] = ("Players", "Gravity", "Blocks", "Barriers", "Links")
 

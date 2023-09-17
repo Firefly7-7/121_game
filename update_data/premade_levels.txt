@@ -46,3 +46,10 @@ FTL
 Wormholes
 Four
 The End...
+Dual Climber
+Gravity Maze
+Offscreen
+Recentering
+Scrolling
+Side to side
+Tower Climb

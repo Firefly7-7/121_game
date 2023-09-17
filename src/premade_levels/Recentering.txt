@@ -1,0 +1,3 @@
+5uSingle Recentering2277152224]1Zá2q2312p2=11!This block can change the area of the screen.2741
+5oMultiple Recentering2277152226=11;Oh, another one!  Try hitting it.224]1sé2q2=11,Did something, but not enough.  Try again?2e4=11$This setting shifts the screen a fixed distance.2p2312d21
+5uPlayer Recentering2277152224=11!This setting recenters relative to the player224]1eá244312y22644648404q4
