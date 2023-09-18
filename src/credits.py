@@ -3,7 +3,7 @@ holds credits class
 """
 
 from utility import Utility
-from pygame.display import flip
+import pygame
 
 
 class Credits(Utility):
@@ -57,9 +57,6 @@ class Credits(Utility):
             y_align=0.5,
             border_width=0
         ))
-        flip()
-        self.handle_buttons()
-        flip()
         if self.tts:
             self.speak(credits_text)
         while self.place == "credits":
